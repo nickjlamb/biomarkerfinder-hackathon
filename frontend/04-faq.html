@@ -1,0 +1,88 @@
+<!-- Full-width wrapper with background -->
+<div style="background-color: #f4f6fb; padding: 50px 20px;">
+
+  <!-- Centered content inside -->
+  <div style="max-width: 800px; margin: 0 auto; font-family: 'Segoe UI', sans-serif; background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <h3 style="color: #2036F5; font-size: 26px; margin-bottom: 25px;">❓ Frequently Asked Questions</h3>
+
+    <div class="faq-item">
+      <button class="faq-question">What is a biomarker?</button>
+      <div class="faq-answer">A biomarker is a biological molecule that indicates a medical condition, treatment response, or disease progression. In oncology, biomarkers can help diagnose cancer, predict prognosis, or guide treatment decisions.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Where does the biomarker data come from?</button>
+      <div class="faq-answer">We use real-time data from the <a href="https://platform.opentargets.org" target="_blank" style="color: #8958FE;">Open Targets Platform</a>, which integrates public data to map relationships between diseases and genes.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">How is the biomarker summary generated?</button>
+      <div class="faq-answer">We use AI (GPT-4) to generate concise, plain-language summaries of each biomarker's role in a specific cancer type, based on Open Targets evidence.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">What does the "Score" mean?</button>
+      <div class="faq-answer">Open Targets provides this score from 0–1 based on evidence linking the biomarker to the disease. A higher score means a stronger evidence-backed association.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Can I use this tool for clinical decisions?</button>
+      <div class="faq-answer">No. This tool is for educational and exploratory purposes only. It is not intended to guide clinical practice.</div>
+    </div>
+
+    <style>
+      .faq-item {
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+      }
+      .faq-question {
+        background: none;
+        border: none;
+        color: #2036F5;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 12px 0;
+        text-align: left;
+        width: 100%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: color 0.3s ease;
+      }
+      .faq-question:hover {
+        color: #0f1cc9;
+      }
+      .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease, padding 0.3s ease;
+        color: #333;
+        font-size: 15px;
+        padding-left: 12px;
+      }
+      .faq-item.active .faq-answer {
+        max-height: 300px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      .faq-question::before {
+        content: "➕";
+        margin-right: 8px;
+        transition: transform 0.3s ease;
+      }
+      .faq-item.active .faq-question::before {
+        content: "➖";
+      }
+    </style>
+
+    <script>
+      document.querySelectorAll(".faq-question").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const item = btn.parentElement;
+          item.classList.toggle("active");
+        });
+      });
+    </script>
+  </div>
+</div>
