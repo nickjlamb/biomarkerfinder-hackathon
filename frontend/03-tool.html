@@ -463,7 +463,62 @@
     .delay-3 { animation-delay: 0.3s; }
     .delay-4 { animation-delay: 0.4s; }
     .delay-5 { animation-delay: 0.5s; }
+
+    /* @risg99 - Start of Export buttons styling */
+    .export-buttons {
+      display: flex;
+      gap: 15px;
+      margin: 10px 0 20px 0;
+    }
+    .export-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(67, 97, 238, 0.15);
+    }
+    .export-btn:hover {
+      background: linear-gradient(135deg, #3a0ca3, #4361ee);
+    }
+    /* @risg99 - End of Export buttons styling */
+
+    /* @risg99 - Start of Share Link Container */
+    #shareLinkContainer {
+      background-color: #f0f4ff;
+      border: 1px solid #4361ee;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    #shareLinkContainer a {
+      color: #4361ee;
+      text-decoration: underline;
+    }
+    #shareLinkContainer button {
+      background-color: #4361ee;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #shareLinkContainer button:hover {
+      background-color: #3a0ca3;
+    }
+    /* @risg99 - End of Share Link Container */
   </style>
+
+  <!-- @risg99 - Start of Export button styling JS Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- @risg99 - End of Export button styling JS Script -->
+
 </head>
 <body>
   <div class="app-wrapper">
@@ -502,6 +557,11 @@
           <div class="recent-search-tag">Acute myeloid leukemia</div>
         </div>
       </div>
+
+      <!-- @risg99 - Start of Share Link Container -->
+      <div id="shareLinkContainer"></div>
+      <!-- @risg99 - End of Share Link Container -->
+
       <div class="output-container">
         <div id="output" class="biomarker-results">
         <div class="empty-state">
@@ -521,13 +581,28 @@
     const buttonText = document.getElementById("buttonText");
     const loadingSpinner = document.getElementById("loadingSpinner");
     const recentSearchTags = document.querySelectorAll(".recent-search-tag");
-    // Click event for recent search tags
+
+    // @risg99 - Start of Prefill functionality call
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const disease = params.get("disease");
+      if (disease) {
+        const decodedDisease = decodeURIComponent(disease);
+        input.value = decodedDisease;
+        searchBiomarkers(decodedDisease); // run search automatically
+      }
+    });
+    // @risg99 - End of Prefill functionality call
+
+    // @risg99 - Start of Updated Click event for recent search tags to reuse same function with prefill
     recentSearchTags.forEach(tag => {
       tag.addEventListener("click", () => {
-        input.value = tag.textContent;
-        searchBiomarkers();
+        const diseaseName = tag.textContent;
+        input.value = diseaseName;
+        searchBiomarkers(diseaseName); // reuse same function
       });
     });
+    // @risg99 - End of Updated Click event for recent search tags to reuse same function with prefill
     // Enter key event for search input
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -536,9 +611,10 @@
     });
     // Click event for search button
     btn.addEventListener("click", searchBiomarkers);
-    // Main function to fetch and display biomarkers
-    async function searchBiomarkers() {
-      const disease = input.value.trim();
+
+    // @risg99 - Start of Prefill functionality
+    async function searchBiomarkers(prefilledDisease) {
+      const disease = prefilledDisease || input.value.trim();
       if (!disease) {
         output.innerHTML = `
           <div class="empty-state">
@@ -549,6 +625,26 @@
         `;
         return;
       }
+
+      // --- Update the URL to make it shareable ---
+      const encodedDisease = encodeURIComponent(disease);
+      const shareableUrl = `${window.location.origin}${window.location.pathname}?disease=${encodedDisease}`;
+
+      // Display shareable link in container
+      const shareContainer = document.getElementById("shareLinkContainer");
+      shareContainer.innerHTML = `
+        🔗 Shareable link: <a href="${shareableUrl}" target="_blank">${shareableUrl}</a>
+        <button id="copyLinkBtn" style="margin-left:6px; padding:2px 6px; font-size:12px;">Copy</button>
+      `;
+
+      // Add a single copy event listener
+      const copyBtn = document.getElementById("copyLinkBtn");
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(shareableUrl);
+        alert("Link copied to clipboard!");
+      };
+      // @risg99 - End of Prefill functionality
+
       // Show loading state
       buttonText.style.display = "none";
       loadingSpinner.innerHTML = '<span class="loading-spinner"></span>';
@@ -597,16 +693,23 @@
               </a>
             </div>
           `).join("");
-          // Create results header
+
+          // @risg99 - Start of Export buttons added
           let resultsHTML = `
             <div class="result-header fade-in">
               <h2 class="result-title">Top biomarkers for ${data.disease}</h2>
               <span class="result-count">${data.biomarkers.length} found</span>
             </div>
+            <div class="export-buttons">
+              <button id="exportCSV" class="export-btn"><i class="fas fa-file-csv"></i> Export to CSV</button>
+              <button id="exportPDF" class="export-btn"><i class="fas fa-file-pdf"></i> Download PDF Summary</button>
+            </div>
             <div class="biomarker-grid">
               ${biomarkerList}
             </div>
           `;
+          // @risg99 - End of Export buttons added
+
           output.innerHTML = resultsHTML;
           // Get all type spans and summaries for classification
           const typeSpans = document.querySelectorAll(".biomarker-type");
@@ -656,6 +759,188 @@
               typeSpans[i].textContent = "Not classified";
             }
           });
+
+          // @risg99 - Start of Export to CSV and PDF functionality
+          setTimeout(() => {
+            document.getElementById("exportCSV").addEventListener("click", () => {
+              // --- CSV Export (Beautified) ---
+              const cards = document.querySelectorAll(".biomarker-card");
+              const csvRows = [];
+
+              // Metadata header
+              const date = new Date().toISOString().split("T")[0];
+              csvRows.push(`BiomarkerFinder Summary Report`);
+              csvRows.push(`Disease: ${data.disease}`);
+              csvRows.push(`Date: ${date}`);
+              csvRows.push(`Evidence Source: Open Targets`);
+              csvRows.push(""); // blank line
+
+              // Column headers
+              const headers = ["#", "Biomarker", "Gene", "Score", "Type", "Summary", "Evidence Source"];
+              csvRows.push(headers.join(","));
+
+              // Helper: safely quote each cell
+              function quoteCSV(value) {
+                if (value === null || value === undefined) return "";
+                const safeValue = value.replace(/"/g, '""'); // escape quotes
+                return `"${safeValue}"`;
+              }
+
+              // Build rows
+              cards.forEach((card, i) => {
+                const name = card.querySelector(".biomarker-name").textContent.trim();
+                const gene = card.querySelector(".biomarker-gene").textContent.trim();
+                const score = card.querySelector(".score-value").textContent.trim();
+                const type = card.querySelector(".biomarker-type").textContent.trim();
+                const summary = card.querySelector(".biomarker-summary").textContent.trim();
+                const link = card.querySelector(".biomarker-link").href.trim();
+
+                const row = [
+                  i + 1,
+                  quoteCSV(name),
+                  quoteCSV(gene),
+                  quoteCSV(score),
+                  quoteCSV(type),
+                  quoteCSV(summary),
+                  quoteCSV(link)
+                ].join(",");
+                csvRows.push(row);
+              });
+
+              // Combine with UTF-8 BOM for Excel
+              const csvContent = "\uFEFF" + csvRows.join("\n");
+
+              // Create and download
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${data.disease.replace(/\s+/g, "_")}_biomarkers_${date}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            });
+
+            document.getElementById("exportPDF").addEventListener("click", async () => {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+              // --- Metadata ---
+              const date = new Date().toLocaleDateString();
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const pageHeight = doc.internal.pageSize.getHeight();
+              const marginX = 14;
+              let y = 30;
+              const lineHeight = 7;
+
+              // --- Header ---
+              doc.setFillColor(220, 230, 255); // light blue banner
+              doc.rect(0, 0, pageWidth, 20, "F");
+              doc.setTextColor(30, 30, 100);
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(18);
+              doc.text("BiomarkerFinder Summary Report", marginX, 13);
+
+              // --- Metadata Section ---
+              doc.setTextColor(0, 0, 0);
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(12);
+              doc.text(`Disease: ${data.disease}`, marginX, y);
+              doc.text(`Date: ${date}`, marginX, y + 6);
+              doc.text("Evidence Source: Open Targets", marginX, y + 12);
+              y += 22;
+
+              // --- Divider ---
+              doc.setDrawColor(180);
+              doc.line(marginX, y, pageWidth - marginX, y);
+              y += 8;
+
+              // --- Content ---
+              const cards = document.querySelectorAll(".biomarker-card");
+              let pageNumber = 1;
+
+              // Helper function to check if we need a new page
+              function checkPageSpace(extraSpace = 0) {
+                if (y + extraSpace > pageHeight - 20) {
+                  // Footer before adding new page
+                  doc.setFontSize(10);
+                  doc.setTextColor(150);
+                  doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+                  doc.addPage();
+                  pageNumber++;
+                  y = 20;
+                  // Header for new page
+                  doc.setFont("helvetica", "bold");
+                  doc.setFontSize(14);
+                  doc.setTextColor(30, 30, 100);
+                  doc.text("BiomarkerFinder Summary (continued)", marginX, y);
+                  y += 10;
+                  doc.setDrawColor(200);
+                  doc.line(marginX, y, pageWidth - marginX, y);
+                  y += 8;
+                  doc.setFont("helvetica", "normal");
+                  doc.setTextColor(0, 0, 0);
+                }
+              }
+
+              // --- Each biomarker as paragraph ---
+              cards.forEach((card, index) => {
+                const name = card.querySelector(".biomarker-name").textContent;
+                const gene = card.querySelector(".biomarker-gene").textContent || "N/A";
+                const score = card.querySelector(".score-value").textContent || "N/A";
+                const type = card.querySelector(".biomarker-type").textContent || "Unclassified";
+                const summary = card.querySelector(".biomarker-summary").textContent || "";
+                const link = card.querySelector(".biomarker-link").href;
+
+                // Check space before new biomarker
+                checkPageSpace(40);
+
+                // Biomarker header
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.setTextColor(30, 30, 100);
+                doc.text(`${index + 1}. ${name}`, marginX, y);
+                y += lineHeight;
+
+                // Gene, Score, Type
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`• Gene: ${gene}`, marginX + 4, y);
+                y += lineHeight;
+                doc.text(`• Score: ${score}`, marginX + 4, y);
+                y += lineHeight;
+                doc.text(`• Type: ${type}`, marginX + 4, y);
+                y += lineHeight;
+
+                // Summary (wrap text)
+                const summaryLines = doc.splitTextToSize(`• Summary: ${summary}`, pageWidth - marginX * 2);
+                checkPageSpace(summaryLines.length * 6);
+                doc.text(summaryLines, marginX + 4, y);
+                y += summaryLines.length * 6;
+
+                // URL (light blue color)
+                doc.setTextColor(0, 0, 180);
+                const urlLines = doc.splitTextToSize(`• Evidence Source: ${link}`, pageWidth - marginX * 2);
+                doc.text(urlLines, marginX + 4, y);
+                doc.setTextColor(0, 0, 0);
+                y += urlLines.length * 6 + 6;
+
+                // Divider between biomarkers
+                doc.setDrawColor(230);
+                doc.line(marginX, y, pageWidth - marginX, y);
+                y += 6;
+              });
+
+              // --- Footer on last page ---
+              doc.setFontSize(10);
+              doc.setTextColor(150);
+              doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+
+              doc.save(`${data.disease.replace(/\s+/g, "_")}_biomarkers_summary.pdf`);
+            });
+          }, 700);
+          // @risg99 - End of Export to CSV and PDF functionality
+
         }
       } catch (err) {
         output.innerHTML = `
