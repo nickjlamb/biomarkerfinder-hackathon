@@ -463,6 +463,29 @@
     .delay-3 { animation-delay: 0.3s; }
     .delay-4 { animation-delay: 0.4s; }
     .delay-5 { animation-delay: 0.5s; }
+
+    .autocomplete-suggestions {
+      position: absolute;
+      border: 1px solid #ddd;
+      border-top: none;
+      z-index: 99;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: white;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .suggestion-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .suggestion-item:hover {
+      background-color: #f1f1f1;
+    }
   </style>
 </head>
 <body>
@@ -486,7 +509,8 @@
       <div class="search-container fade-in">
         <div class="input-group">
           <div class="input-container">
-            <input id="diseaseInput" type="text" placeholder="Enter a disease name (e.g., breast cancer, melanoma, leukemia)">
+            <input id="diseaseInput" type="text" placeholder="Enter a disease name (e.g., breast cancer, melanoma, leukemia)" autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-suggestions"></div>
             <i class="input-icon fas fa-search"></i>
           </div>
           <button id="getBiomarkersBtn">
@@ -521,6 +545,58 @@
     const buttonText = document.getElementById("buttonText");
     const loadingSpinner = document.getElementById("loadingSpinner");
     const recentSearchTags = document.querySelectorAll(".recent-search-tag");
+    const autocompleteList = document.getElementById("autocomplete-list");
+
+    let diseaseNames = [];
+
+    // Fetch and process the disease list
+    async function fetchDiseases() {
+      try {
+        const response = await fetch('../data/combined_diseases.json');
+        const data = await response.json();
+        diseaseNames = data.data.search.hits.map(hit => hit.object.name);
+      } catch (error) {
+        console.error("Failed to load disease list:", error);
+      }
+    }
+
+    // Display autocomplete suggestions
+    function displaySuggestions(matches) {
+      if (matches.length > 0) {
+        const html = matches.map(match => `<div class="suggestion-item">${match}</div>`).join('');
+        autocompleteList.innerHTML = html;
+        autocompleteList.style.display = 'block';
+      } else {
+        autocompleteList.style.display = 'none';
+      }
+    }
+
+    // Event listener for input
+    input.addEventListener("input", () => {
+      const value = input.value.toLowerCase();
+      if (!value) {
+        autocompleteList.style.display = 'none';
+        return;
+      }
+      const matches = diseaseNames.filter(disease => disease.toLowerCase().includes(value)).slice(0, 10); // Limit to 10 suggestions
+      displaySuggestions(matches);
+    });
+
+    // Event listener for clicking on a suggestion
+    autocompleteList.addEventListener("click", (e) => {
+      if (e.target.classList.contains("suggestion-item")) {
+        input.value = e.target.textContent;
+        autocompleteList.style.display = 'none';
+      }
+    });
+    
+    // Close autocomplete when clicking elsewhere
+    document.addEventListener("click", (e) => {
+        if (e.target.id !== 'diseaseInput') {
+            autocompleteList.style.display = 'none';
+        }
+    });
+
     // Click event for recent search tags
     recentSearchTags.forEach(tag => {
       tag.addEventListener("click", () => {
@@ -528,16 +604,26 @@
         searchBiomarkers();
       });
     });
+
     // Enter key event for search input
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        searchBiomarkers();
+        // If autocomplete is visible, pressing enter should not submit yet
+        if (autocompleteList.style.display === 'block') {
+            // A better implementation might select the top choice
+            autocompleteList.style.display = 'none'; // Just hide for now
+        } else {
+            searchBiomarkers();
+        }
       }
     });
+
     // Click event for search button
     btn.addEventListener("click", searchBiomarkers);
+
     // Main function to fetch and display biomarkers
     async function searchBiomarkers() {
+      autocompleteList.style.display = 'none'; // Hide suggestions
       const disease = input.value.trim();
       if (!disease) {
         output.innerHTML = `
@@ -674,6 +760,7 @@
     window.addEventListener('load', () => {
       // Clear any default value
       input.value = "";
+      fetchDiseases();
     });
   </script>
 </body>
