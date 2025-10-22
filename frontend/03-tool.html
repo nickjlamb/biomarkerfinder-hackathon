@@ -1198,61 +1198,31 @@
         output.innerHTML = resultsHTML;
 
         const typeSpans = document.querySelectorAll(".biomarker-type");
-        const summaries = document.querySelectorAll(".biomarker-summary");
 
-        // @risg99 - Start of updated biomarker classification logic to use promises & build graphs
-        const classificationPromises = Array.from(summaries).map((summaryElem, i) => {
-          const summaryText = summaryElem.textContent;
-          const biomarkerName = data.biomarkers[i].name;
-          const diseaseName = data.disease;
+        // Use classification data already returned from backend (no additional API calls needed)
+        const classifications = data.biomarkers.map((biomarker, i) => {
+          const type = biomarker.type || biomarker.category || "unknown";
+          const typeText = type.toLowerCase();
 
-          return fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/classifyBiomarker", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              biomarker: biomarkerName,
-              disease: diseaseName,
-              description: summaryText
-            })
-          })
-            .then(res => res.json())
-            .then(classifyData => {
-              let type = "Not classified";
-              let typeClass = "";
-              let typeIcon = "fa-flask";
+          let typeClass = "";
+          if (typeText.includes("predictive")) {
+            typeClass = "predictive";
+          } else if (typeText.includes("prognostic")) {
+            typeClass = "prognostic";
+          } else if (typeText.includes("diagnostic")) {
+            typeClass = "diagnostic";
+          }
 
-              if (classifyData.type) {
-                const typeText = classifyData.type.toLowerCase();
-                if (typeText.includes("predictive")) {
-                  typeClass = "predictive";
-                  typeIcon = "fa-chart-line";
-                } else if (typeText.includes("prognostic")) {
-                  typeClass = "prognostic";
-                  typeIcon = "fa-clock";
-                } else if (typeText.includes("diagnostic")) {
-                  typeClass = "diagnostic";
-                  typeIcon = "fa-stethoscope";
-                }
-                type = classifyData.type.charAt(0).toUpperCase() + classifyData.type.slice(1).toLowerCase();
-              }
+          // Update UI with classification
+          const formattedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+          typeSpans[i].textContent = formattedType;
+          if (typeClass) typeSpans[i].classList.add(typeClass);
 
-              typeSpans[i].textContent = type;
-              if (typeClass) typeSpans[i].classList.add(typeClass);
-
-              return typeClass || "unknown";
-            })
-            .catch(err => {
-              console.warn(`Classification failed for ${biomarkerName}:`, err);
-              typeSpans[i].textContent = "Not classified";
-              return "unknown";
-            });
+          return typeClass || "unknown";
         });
-
-        const classifications = await Promise.all(classificationPromises);
 
         // Build graph with biomarkers, disease, and drugs
         buildGraph(data, classifications, matchedDrugs);
-        // @risg99 - End of updated biomarker classification logic to use promises & build graphs
 
         // @risg99 - Start of Export to CSV and PDF functionality
         setTimeout(() => {
