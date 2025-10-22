@@ -2,33 +2,139 @@
 <div style="background-color: #f4f6fb; padding: 50px 20px;">
 
   <!-- Centered content inside -->
-  <div style="max-width: 800px; margin: 0 auto; font-family: 'Segoe UI', sans-serif; background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+  <div
+    style="max-width: 800px; margin: 0 auto; font-family: 'Segoe UI', sans-serif; background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
     <h3 style="color: #2036F5; font-size: 26px; margin-bottom: 25px;">❓ Frequently Asked Questions</h3>
 
     <div class="faq-item">
       <button class="faq-question">What is a biomarker?</button>
-      <div class="faq-answer">A biomarker is a biological molecule that indicates a medical condition, treatment response, or disease progression. In oncology, biomarkers can help diagnose cancer, predict prognosis, or guide treatment decisions.</div>
+      <div class="faq-answer">
+        <!-- @risg99 - Start of answer 1 -->
+        <!-- A biomarker is a biological molecule that indicates a medical condition, treatment
+        response, or disease progression. In oncology, biomarkers can help diagnose cancer, predict prognosis, or guide
+        treatment decisions. -->
+        A biomarker is a biological molecule — such as a gene, protein, or mutation — that can help detect a medical
+        condition, predict how it will progress, or show how well a treatment is working.
+        In cancer, biomarkers help with diagnosis, prognosis, and treatment planning.
+        <!-- @risg99 - End of answer 1 -->
+      </div>
     </div>
 
     <div class="faq-item">
       <button class="faq-question">Where does the biomarker data come from?</button>
-      <div class="faq-answer">We use real-time data from the <a href="https://platform.opentargets.org" target="_blank" style="color: #8958FE;">Open Targets Platform</a>, which integrates public data to map relationships between diseases and genes.</div>
+      <div class="faq-answer">
+        <!-- @risg99 - Start of answer 2 -->
+        <!-- We use real-time data from the <a href="https://platform.opentargets.org" target="_blank"
+          style="color: #8958FE;">Open Targets Platform</a>, which integrates public data to map relationships between
+        diseases and genes. -->
+        We use data from the <a href="https://platform.opentargets.org" target="_blank" style="color: #8958FE;">Open
+          Targets Platform</a>, a public database that connects genes, diseases, and
+        drugs. Our tool sends real-time queries to the Open Targets GraphQL API to get the most updated information.
+        <!-- @risg99 - End of answer 2 -->
+      </div>
     </div>
 
     <div class="faq-item">
-      <button class="faq-question">How is the biomarker summary generated?</button>
-      <div class="faq-answer">We use AI (GPT-4) to generate concise, plain-language summaries of each biomarker's role in a specific cancer type, based on Open Targets evidence.</div>
+      <!-- @risg99 - Start of FAQ update 3 -->
+      <!-- <button class="faq-question">How is the biomarker summary generated?</button> -->
+      <button class="faq-question">How are the biomarker summaries generated?</button>
+      <div class="faq-answer">
+        <!-- We use AI (GPT-4) to generate concise, plain-language summaries of each biomarker's
+          role in a specific cancer type, based on Open Targets evidence. -->
+        We use AI (GPT-4) to generate concise, easy-to-understand and plain-language summaries
+        for each biomarker. These summaries are based on scientific evidence from Open Targets and tailored to each
+        specific disease.
+      </div>
+      <!-- @risg99 - End of FAQ update 3 -->
     </div>
 
     <div class="faq-item">
       <button class="faq-question">What does the "Score" mean?</button>
-      <div class="faq-answer">Open Targets provides this score from 0–1 based on evidence linking the biomarker to the disease. A higher score means a stronger evidence-backed association.</div>
+      <!-- @risg99 - Start of answer 4 -->
+      <div class="faq-answer">
+        <!-- Open Targets provides this score from 0–1 based on evidence linking the biomarker to the
+        disease. A higher score means a stronger evidence-backed association.  -->
+        The score (0 to 1) comes from Open Targets and reflects how strongly a biomarker is
+        linked to a disease. A higher score means there's more evidence supporting that connection.
+      </div>
+      <!-- @risg99 - End of answer 4 -->
     </div>
+
+    <!-- @risg99 - Start of FAQ add 5 -->
+    <div class="faq-item">
+      <button class="faq-question">What do “predictive,” “prognostic,” and “diagnostic” mean?</button>
+      <div class="faq-answer">
+        <ul>
+          <li><b>Predictive</b> biomarkers help show if a treatment is likely to work.</li>
+          <li><b>Prognostic</b> biomarkers give information about the likely course or outcome of a disease.</li>
+          <li><b>Diagnostic</b> biomarkers help confirm the presence of a disease.</li>
+        </ul>
+      </div>
+    </div>
+    <!-- @risg99 - End of FAQ add 5 -->
+
+
+    <!-- @risg99 - Start of FAQ add 6 -->
+
+    <div class="faq-item">
+      <button class="faq-question">What’s the "Toggle for Visual Mode" for?</button>
+      <div class="faq-answer">
+        It is a feature that allows users to switch to a graphical representation of the data.
+        The graph view lets you visually explore how diseases are connected to biomarkers and drugs.
+        Each node is color-coded:
+        <ul>
+          <li><span style="color:#4361ee;">■</span> Disease</li>
+          <li>
+            Biomarkers:
+            <ul>
+              <li><span style="color:#ffd166;">■</span> Prognostic </li>
+              <li><span style="color:#06d6a0;">■</span> Predictive </li>
+              <li><span style="color:#ef476f;">■</span> Diagnostic </li>
+            </ul>
+          </li>
+          <li><span style="color:#ff69b4;">■</span> Drugs </li>
+        </ul>
+        This mode helps users spot patterns, relationships, and potential therapeutic links more easily.
+      </div>
+    </div>
+    <!-- @risg99 - End of FAQ add 6 -->
+
+    <!-- @risg99 - Start of FAQ add 7 -->
+    <div class="faq-item">
+      <button class="faq-question">Can I download or export the results?</button>
+      <div class="faq-answer">
+        Yes! You can export the results as CSV or PDF files. Additionally, the platform provides shareable links so you
+        can easily share your findings with others.
+      </div>
+    </div>
+    <!-- @risg99 - End of FAQ add 7 -->
+
+    <!-- @risg99 - Start of FAQ add 8 -->
+    <div class="faq-item">
+      <button class="faq-question">How often is the biomarker data updated?</button>
+      <div class="faq-answer">
+        The data is fetched in real time from the Open Targets Platform API, which is regularly updated as new
+        scientific
+        evidence becomes available. This ensures you're always seeing the latest available insights.
+      </div>
+    </div>
+    <!-- @risg99 - End of FAQ add 8 -->
 
     <div class="faq-item">
       <button class="faq-question">Can I use this tool for clinical decisions?</button>
-      <div class="faq-answer">No. This tool is for educational and exploratory purposes only. It is not intended to guide clinical practice.</div>
+      <div class="faq-answer">No. This tool is for educational and exploratory purposes only. It is not intended to
+        guide clinical practice.</div>
     </div>
+
+    <!-- @risg99 - Start of FAQ add 10 -->
+    <div class="faq-item">
+      <button class="faq-question">How can I suggest a new feature or report a bug?</button>
+      <div class="faq-answer">
+        We would love your feedback! You can reach out to the development team through the contact form. Feature
+        suggestions, bug reports, and general feedback are all welcome.
+      </div>
+    </div>
+    <!-- @risg99 - End of FAQ add 10 -->
 
     <style>
       .faq-item {
@@ -36,6 +142,7 @@
         margin-bottom: 12px;
         padding-bottom: 8px;
       }
+
       .faq-question {
         background: none;
         border: none;
@@ -50,9 +157,11 @@
         align-items: center;
         transition: color 0.3s ease;
       }
+
       .faq-question:hover {
         color: #0f1cc9;
       }
+
       .faq-answer {
         max-height: 0;
         overflow: hidden;
@@ -61,16 +170,19 @@
         font-size: 15px;
         padding-left: 12px;
       }
+
       .faq-item.active .faq-answer {
         max-height: 300px;
         padding-top: 10px;
         padding-bottom: 10px;
       }
+
       .faq-question::before {
         content: "➕";
         margin-right: 8px;
         transition: transform 0.3s ease;
       }
+
       .faq-item.active .faq-question::before {
         content: "➖";
       }
