@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<!-- @risg99 - Start of JS script call -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- @risg99 - End of JS script call -->
+</head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BiomarkerFinder</title>
@@ -691,6 +694,9 @@
                   </span>
                 </span>
               </div>
+              <!-- @risg99 - Start of Canvas for chart -->
+              <canvas id="confidenceBarChart${b.name}" width="400" height="200"></canvas>
+              <!-- @risg99 - End of Canvas for chart -->
               <a href="${b.openTargetsLink}" target="_blank" class="biomarker-link">
                 View on Open Targets
               </a>
@@ -707,6 +713,18 @@
             </div>
           `;
           output.innerHTML = resultsHTML;
+
+          // @risg99 - Start of Chart.js implementation
+          data.biomarkers.forEach((biomarker, i) => {
+            const chartId = `confidenceBarChart_${biomarker.name}`;
+            const scores = biomarker.datatypes || {}; // Use the datatypes or any relevant data
+
+            if (scores && Object.keys(scores).length > 0) {
+              renderBarChart(scores, chartId); // Function to render chart
+            }
+          });
+          // @risg99 - End of Chart.js implementation
+
           // Get all type spans and summaries for classification
           const typeSpans = document.querySelectorAll(".biomarker-type");
           const summaries = document.querySelectorAll(".biomarker-summary");
@@ -756,6 +774,45 @@
             }
           });
         }
+
+        // @risg99 - Start of function to render bar chart using Chart.js
+        // Create a Bar Chart to visualize confidence scores
+        function renderBarChart(scores, chartId) {
+          const ctx = document.getElementById(chartId).getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: Object.keys(scores), // Labels for each evidence type
+              datasets: [{
+                label: 'Confidence Scores',
+                data: Object.values(scores), // Data is the confidence score values
+                backgroundColor: 'rgba(54, 162, 235, 0.6)', // Bar color
+                borderColor: 'rgba(54, 162, 235, 1)', // Border color
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 1, // max score of 1
+                  title: {
+                    display: true,
+                    text: 'Confidence Score'
+                  }
+                },
+                x: {
+                  title: {
+                    display: true,
+                    text: 'Evidence Types'
+                  }
+                }
+              }
+            }
+          });
+        }
+        // @risg99 - End of function to render bar chart using Chart.js
       } catch (err) {
         output.innerHTML = `
           <div class="empty-state">
