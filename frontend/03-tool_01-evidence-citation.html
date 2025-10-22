@@ -642,8 +642,7 @@
       output.innerHTML = "";
       try {
         // Fetch biomarkers from API
-        const response = 
-        await fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/getBiomarkers", {
+        const response = await fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/getBiomarkers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ disease })
@@ -679,6 +678,19 @@
                 <span class="score-value">${parseFloat(b.score).toFixed(2)}</span>
               </div>
               <p class="biomarker-summary">${b.summary}</p>
+              <div class="biomarker-score">
+                <span class="score-label">
+                  Evidence count: ${b.evidence_count}
+                  <span class="tooltip-icon">?
+                    <span class="tooltip">
+                      PubMed publication IDs:
+                      <ul>
+                        ${(b.literature || []).map(id => `<li>${id}</li>`).join('')}
+                      </ul>
+                    </span>
+                  </span>
+                </span>
+              </div>
               <a href="${b.openTargetsLink}" target="_blank" class="biomarker-link">
                 View on Open Targets
               </a>
