@@ -66,7 +66,7 @@ Example formats:
 "Unknown: There is insufficient evidence to classify this biomarker..."`;
 
       const categoryRes = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: categoryPrompt }],
         temperature: 0,
         max_tokens: 150
@@ -248,14 +248,14 @@ Example formats:
 
             const [summaryRes, categoryRes] = await Promise.all([
               openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o-mini",
                 messages: [{ role: "user", content: summaryPrompt }],
                 temperature: 0.7,
                 max_tokens: 200
               }, { signal: controller.signal }),
 
               openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o-mini",
                 messages: [{ role: "user", content: categoryPrompt }],
                 temperature: 0,
                 max_tokens: 100
