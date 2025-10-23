@@ -840,13 +840,13 @@
     let diseaseNames = [];
 
     // @risg99 - Start of Prefill functionality call
-    window.addEventListener("DOMContentLoaded", () => {
+    window.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(window.location.search);
       const disease = params.get("disease");
       if (disease) {
         const decodedDisease = decodeURIComponent(disease);
         input.value = decodedDisease;
-        searchBiomarkers(decodedDisease); // run search automatically
+        await searchBiomarkers(decodedDisease); // run search automatically
       }
     });
     // @risg99 - End of Prefill functionality call
