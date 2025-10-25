@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Assistant - BiomarkerFinder</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .voice-assistant-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .voice-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .voice-header h2 {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+
+    .voice-header p {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    .voice-input-container {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+
+    .voice-input-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .voice-input {
+      flex: 1;
+      padding: 16px 20px;
+      font-size: 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .voice-input:focus {
+      border-color: #667eea;
+    }
+
+    .voice-ask-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s, box-shadow 0.3s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .voice-ask-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .voice-ask-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .voice-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .voice-response-container {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      display: none;
+    }
+
+    .voice-response-container.show {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .voice-response-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .voice-response-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+    }
+
+    .voice-response-meta {
+      flex: 1;
+    }
+
+    .voice-response-disease {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .voice-response-count {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .voice-response-text {
+      font-size: 16px;
+      line-height: 1.7;
+      color: #4a5568;
+      margin-bottom: 20px;
+    }
+
+    .voice-audio-player {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .voice-play-btn {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .voice-play-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .voice-audio-info {
+      flex: 1;
+    }
+
+    .voice-audio-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .voice-audio-duration {
+      font-size: 12px;
+      color: #718096;
+    }
+
+    .voice-error {
+      background: #fff5f5;
+      border: 2px solid #fc8181;
+      border-radius: 12px;
+      padding: 16px;
+      color: #c53030;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .voice-error.show {
+      display: block;
+    }
+
+    .voice-examples {
+      margin-top: 24px;
+      padding: 20px;
+      background: #f7fafc;
+      border-radius: 12px;
+    }
+
+    .voice-examples-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 12px;
+    }
+
+    .voice-example-chip {
+      display: inline-block;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 8px 16px;
+      margin: 4px;
+      font-size: 13px;
+      color: #667eea;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .voice-example-chip:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="voice-assistant-container">
+    <!-- Header -->
+    <div class="voice-header">
+      <h2><i class="fas fa-microphone-alt"></i> Voice Assistant</h2>
+      <p>Ask questions about biomarkers and get spoken answers</p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="voice-input-container">
+      <div class="voice-input-group">
+        <input
+          type="text"
+          id="voiceInput"
+          class="voice-input"
+          placeholder="Ask about biomarkers for any disease..."
+          onkeypress="if(event.key==='Enter') askQuestion()"
+        >
+        <button id="askBtn" class="voice-ask-btn" onclick="askQuestion()">
+          <i class="fas fa-paper-plane"></i>
+          <span id="btnText">Ask</span>
+        </button>
+      </div>
+
+      <!-- Examples -->
+      <div class="voice-examples">
+        <div class="voice-examples-title">Try asking:</div>
+        <span class="voice-example-chip" onclick="setExample('What are the biomarkers for breast cancer?')">
+          Breast cancer biomarkers
+        </span>
+        <span class="voice-example-chip" onclick="setExample('Tell me about EGFR in lung cancer')">
+          EGFR in lung cancer
+        </span>
+        <span class="voice-example-chip" onclick="setExample('What biomarkers are used for diabetes?')">
+          Diabetes biomarkers
+        </span>
+      </div>
+    </div>
+
+    <!-- Response Section -->
+    <div id="responseContainer" class="voice-response-container">
+      <div class="voice-response-header">
+        <div class="voice-response-icon">
+          <i class="fas fa-dna"></i>
+        </div>
+        <div class="voice-response-meta">
+          <div id="responseDisease" class="voice-response-disease"></div>
+          <div id="responseCount" class="voice-response-count"></div>
+        </div>
+      </div>
+
+      <div id="responseText" class="voice-response-text"></div>
+
+      <div class="voice-audio-player">
+        <button id="playBtn" class="voice-play-btn" onclick="toggleAudio()">
+          <i class="fas fa-play"></i>
+        </button>
+        <div class="voice-audio-info">
+          <div class="voice-audio-label">Spoken Answer</div>
+          <div class="voice-audio-duration">Click to play audio response</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="voice-error"></div>
+  </div>
+
+  <audio id="audioPlayer" style="display: none;"></audio>
+
+  <script>
+    let currentAudio = null;
+    let isPlaying = false;
+
+    function setExample(text) {
+      document.getElementById('voiceInput').value = text;
+      askQuestion();
+    }
+
+    async function askQuestion() {
+      const input = document.getElementById('voiceInput');
+      const question = input.value.trim();
+
+      if (!question) {
+        showError('Please enter a question');
+        return;
+      }
+
+      // UI state: loading
+      const askBtn = document.getElementById('askBtn');
+      const btnText = document.getElementById('btnText');
+      const responseContainer = document.getElementById('responseContainer');
+      const errorMessage = document.getElementById('errorMessage');
+
+      askBtn.disabled = true;
+      btnText.innerHTML = '<div class="voice-spinner"></div>';
+      responseContainer.classList.remove('show');
+      errorMessage.classList.remove('show');
+
+      try {
+        const response = await fetch('https://us-central1-biomarker-matchmaker.cloudfunctions.net/askBiomarkerVoice', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to get response');
+        }
+
+        // Display response
+        document.getElementById('responseDisease').textContent = data.disease;
+        document.getElementById('responseCount').textContent = `${data.biomarkerCount} biomarkers found`;
+        document.getElementById('responseText').textContent = data.text;
+
+        // Setup audio
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioBlob = base64ToBlob(data.audio, 'audio/mpeg');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayer.src = audioUrl;
+        currentAudio = audioPlayer;
+
+        // Show response
+        responseContainer.classList.add('show');
+
+        // Auto-play audio
+        playAudio();
+
+      } catch (error) {
+        console.error('Error:', error);
+        showError(error.message || 'Something went wrong. Please try again.');
+      } finally {
+        // UI state: ready
+        askBtn.disabled = false;
+        btnText.textContent = 'Ask';
+      }
+    }
+
+    function toggleAudio() {
+      if (isPlaying) {
+        pauseAudio();
+      } else {
+        playAudio();
+      }
+    }
+
+    function playAudio() {
+      if (currentAudio) {
+        currentAudio.play();
+        isPlaying = true;
+        document.getElementById('playBtn').innerHTML = '<i class="fas fa-pause"></i>';
+
+        currentAudio.onended = () => {
+          isPlaying = false;
+          document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+        };
+      }
+    }
+
+    function pauseAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        isPlaying = false;
+        document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+      }
+    }
+
+    function showError(message) {
+      const errorElement = document.getElementById('errorMessage');
+      errorElement.textContent = message;
+      errorElement.classList.add('show');
+    }
+
+    function base64ToBlob(base64, type) {
+      const binStr = atob(base64);
+      const len = binStr.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        arr[i] = binStr.charCodeAt(i);
+      }
+      return new Blob([arr], { type });
+    }
+  </script>
+</body>
+</html>
