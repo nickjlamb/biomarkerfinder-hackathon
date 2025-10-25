@@ -255,6 +255,67 @@
       color: white;
       border-color: #667eea;
     }
+
+    .voice-mic-btn {
+      width: 48px;
+      height: 48px;
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      color: #667eea;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .voice-mic-btn:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+
+    .voice-mic-btn.listening {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    }
+
+    .voice-listening-indicator {
+      background: #667eea;
+      color: white;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .voice-listening-indicator.show {
+      display: flex;
+    }
+
+    .voice-listening-dot {
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
   </style>
 </head>
 <body>
@@ -262,7 +323,7 @@
     <!-- Header -->
     <div class="voice-header">
       <h2><i class="fas fa-microphone-alt"></i> Voice Assistant</h2>
-      <p>Ask questions about biomarkers and get spoken answers</p>
+      <p>Ask questions using your voice or text and get spoken answers</p>
     </div>
 
     <!-- Input Section -->
@@ -272,13 +333,22 @@
           type="text"
           id="voiceInput"
           class="voice-input"
-          placeholder="Ask about biomarkers for any disease..."
+          placeholder="Type or click the microphone to speak..."
           onkeypress="if(event.key==='Enter') askQuestion()"
         >
+        <button id="micBtn" class="voice-mic-btn" onclick="toggleListening()" title="Click to speak your question">
+          <i class="fas fa-microphone"></i>
+        </button>
         <button id="askBtn" class="voice-ask-btn" onclick="askQuestion()">
           <i class="fas fa-paper-plane"></i>
           <span id="btnText">Ask</span>
         </button>
+      </div>
+
+      <!-- Listening Indicator -->
+      <div id="listeningIndicator" class="voice-listening-indicator">
+        <div class="voice-listening-dot"></div>
+        <span>Listening... speak now</span>
       </div>
 
       <!-- Examples -->
@@ -330,6 +400,76 @@
   <script>
     let currentAudio = null;
     let isPlaying = false;
+    let recognition = null;
+    let isListening = false;
+
+    // Initialize Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('voiceInput').value = transcript;
+        stopListening();
+        // Auto-submit after speech recognition
+        setTimeout(() => askQuestion(), 500);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        stopListening();
+        if (event.error === 'no-speech') {
+          showError('No speech detected. Please try again.');
+        } else if (event.error === 'not-allowed') {
+          showError('Microphone access denied. Please allow microphone access in your browser settings.');
+        } else {
+          showError('Speech recognition error. Please try again.');
+        }
+      };
+
+      recognition.onend = () => {
+        stopListening();
+      };
+    }
+
+    function toggleListening() {
+      if (!recognition) {
+        showError('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+        return;
+      }
+
+      if (isListening) {
+        stopListening();
+      } else {
+        startListening();
+      }
+    }
+
+    function startListening() {
+      try {
+        recognition.start();
+        isListening = true;
+        document.getElementById('micBtn').classList.add('listening');
+        document.getElementById('listeningIndicator').classList.add('show');
+        document.getElementById('errorMessage').classList.remove('show');
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        showError('Could not start speech recognition. Please try again.');
+      }
+    }
+
+    function stopListening() {
+      if (recognition && isListening) {
+        recognition.stop();
+      }
+      isListening = false;
+      document.getElementById('micBtn').classList.remove('listening');
+      document.getElementById('listeningIndicator').classList.remove('show');
+    }
 
     function setExample(text) {
       document.getElementById('voiceInput').value = text;
@@ -337,6 +477,9 @@
     }
 
     async function askQuestion() {
+      // Stop listening if currently active
+      stopListening();
+
       const input = document.getElementById('voiceInput');
       const question = input.value.trim();
 
