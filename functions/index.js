@@ -332,3 +332,186 @@ Example formats:
     }
   });
 });
+
+// Voice Assistant Function
+exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    try {
+      const { question } = req.body;
+
+      if (!question) {
+        return res.status(400).json({ error: "Question is required" });
+      }
+
+      console.log("🎤 Voice question received:", question);
+
+      // Step 1: Extract disease name from natural language question
+      console.log("🧠 Extracting disease name from question...");
+      const extractPrompt = `Extract only the disease or condition name from this question: "${question}". Return ONLY the disease name, nothing else. If no disease is mentioned, return "unknown".`;
+
+      const extractRes = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: extractPrompt }],
+        temperature: 0,
+        max_tokens: 50
+      });
+
+      const diseaseName = extractRes.choices[0].message.content.trim();
+      console.log("✅ Extracted disease:", diseaseName);
+
+      if (diseaseName.toLowerCase() === "unknown") {
+        return res.status(400).json({
+          error: "Could not identify a disease in your question. Please mention a specific disease.",
+          text: "I couldn't identify a specific disease in your question. Could you please ask about a particular disease or condition?"
+        });
+      }
+
+      // Step 2: Get EFO ID from Open Targets
+      console.log("🔍 Looking up disease:", diseaseName);
+      const efoRes = await axios.post(
+        "https://api.platform.opentargets.org/api/v4/graphql",
+        {
+          query: `
+            query Search($term: String!) {
+              search(queryString: $term, entityNames: ["disease"]) {
+                hits {
+                  id
+                  name
+                  entity
+                }
+              }
+            }
+          `,
+          variables: { term: diseaseName },
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const match = efoRes.data.data.search.hits.find(
+        (item) => item.entity === "disease"
+      );
+
+      if (!match || !match.id) {
+        console.warn("⚠️ No matching disease found for:", diseaseName);
+        return res.status(404).json({
+          error: `No matching disease found for "${diseaseName}"`,
+          text: `I couldn't find information about "${diseaseName}" in the Open Targets database. Could you try rephrasing or using a more specific disease name?`
+        });
+      }
+
+      const efoId = match.id;
+      const matchedDiseaseName = match.name;
+      console.log("✅ Matched disease:", matchedDiseaseName, "EFO ID:", efoId);
+
+      // Step 3: Get biomarkers for the disease
+      console.log("🔬 Fetching biomarkers for:", matchedDiseaseName);
+      const biomarkerQuery = `
+        query DiseaseTargets($efoId: String!) {
+          disease(efoId: $efoId) {
+            name
+            associatedTargets(page: {index: 0, size: 5}) {
+              rows {
+                target {
+                  id
+                  approvedSymbol
+                  approvedName
+                }
+                score
+              }
+            }
+          }
+        }
+      `;
+
+      const biomarkerRes = await axios.post(
+        "https://api.platform.opentargets.org/api/v4/graphql",
+        { query: biomarkerQuery, variables: { efoId } },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const biomarkers = biomarkerRes.data.data.disease?.associatedTargets?.rows || [];
+
+      if (biomarkers.length === 0) {
+        console.warn("⚠️ No biomarkers found for:", matchedDiseaseName);
+        return res.status(404).json({
+          error: `No biomarkers found for ${matchedDiseaseName}`,
+          text: `I found the disease ${matchedDiseaseName}, but there are no biomarkers currently associated with it in the Open Targets database.`
+        });
+      }
+
+      console.log(`✅ Found ${biomarkers.length} biomarkers`);
+
+      // Step 4: Create a summary using OpenAI
+      console.log("📝 Generating AI summary...");
+      const biomarkerList = biomarkers
+        .map(b => `${b.target.approvedSymbol} (${b.target.approvedName}, score: ${b.score.toFixed(2)})`)
+        .join(", ");
+
+      const summaryPrompt = `You are a medical AI assistant. Answer this question concisely in 2-3 sentences for a medical professional: "${question}"
+
+Context: The top biomarkers for ${matchedDiseaseName} are: ${biomarkerList}
+
+Provide a clear, professional answer that directly addresses the question. Keep it under 100 words.`;
+
+      const summaryRes = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: summaryPrompt }],
+        temperature: 0.7,
+        max_tokens: 200
+      });
+
+      const summary = summaryRes.choices[0].message.content.trim();
+      console.log("✅ Summary generated:", summary);
+
+      // Step 5: Convert summary to speech with ElevenLabs
+      console.log("🔊 Converting to speech...");
+      const elevenKey = functions.config().elevenlabs.key;
+      const voiceId = functions.config().elevenlabs.voice;
+
+      const elevenRes = await axios.post(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          text: summary,
+          model_id: "eleven_turbo_v2_5",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.0,
+            use_speaker_boost: true
+          }
+        },
+        {
+          headers: {
+            "xi-api-key": elevenKey,
+            "Content-Type": "application/json"
+          },
+          responseType: 'arraybuffer'
+        }
+      );
+
+      // Convert audio to base64 for easy transmission
+      const audioBase64 = Buffer.from(elevenRes.data).toString('base64');
+      console.log("✅ Audio generated, size:", audioBase64.length, "characters");
+
+      // Return both text and audio
+      res.status(200).json({
+        text: summary,
+        audio: audioBase64,
+        disease: matchedDiseaseName,
+        biomarkerCount: biomarkers.length
+      });
+
+    } catch (error) {
+      console.error("🔥 Voice assistant error:", error.message);
+      if (error.response) {
+        console.error("📋 Error details:", error.response.data);
+      }
+      res.status(500).json({
+        error: "Failed to process voice request",
+        details: error.message
+      });
+    }
+  });
+});
