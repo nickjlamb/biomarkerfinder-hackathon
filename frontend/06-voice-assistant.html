@@ -734,14 +734,14 @@
     }
 
     function generateRelatedQuestions(disease) {
-      // Template-based related questions
+      // Biomarker-focused question templates
       const templates = [
-        `What are the treatment options for ${disease}?`,
-        `What causes ${disease}?`,
-        `How is ${disease} diagnosed?`,
-        `What are the symptoms of ${disease}?`,
-        `What is the prognosis for ${disease}?`,
-        `Are there clinical trials for ${disease}?`
+        `Which biomarkers are most strongly associated with ${disease}?`,
+        `How do these biomarkers affect disease progression in ${disease}?`,
+        `Are any of these biomarkers used to predict treatment response in ${disease}?`,
+        `Which drugs target these biomarkers in ${disease}?`,
+        `How reliable are these biomarkers for early diagnosis of ${disease}?`,
+        `What molecular mechanisms link these biomarkers to ${disease}?`
       ];
 
       // Randomly select 3 questions
