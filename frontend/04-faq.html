@@ -1,200 +1,447 @@
-<!-- Full-width wrapper with background -->
-<div style="background-color: #f4f6fb; padding: 50px 20px;">
+<style>
+    .biomarker-faq-wrapper * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-  <!-- Centered content inside -->
-  <div
-    style="max-width: 800px; margin: 0 auto; font-family: 'Segoe UI', sans-serif; background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-    <h3 style="color: #2036F5; font-size: 26px; margin-bottom: 25px;">❓ Frequently Asked Questions</h3>
+    .biomarker-faq-wrapper {
+        background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+        padding: 80px 24px;
+    }
 
-    <div class="faq-item">
-      <button class="faq-question">What is a biomarker?</button>
-      <div class="faq-answer">
-        <!-- @risg99 - Start of answer 1 -->
-        <!-- A biomarker is a biological molecule that indicates a medical condition, treatment
-        response, or disease progression. In oncology, biomarkers can help diagnose cancer, predict prognosis, or guide
-        treatment decisions. -->
-        A biomarker is a biological molecule — such as a gene, protein, or mutation — that can help detect a medical
-        condition, predict how it will progress, or show how well a treatment is working.
-        In cancer, biomarkers help with diagnosis, prognosis, and treatment planning.
-        <!-- @risg99 - End of answer 1 -->
-      </div>
-    </div>
+    .biomarker-faq-container {
+        max-width: 900px;
+        margin: 0 auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
 
-    <div class="faq-item">
-      <button class="faq-question">Where does the biomarker data come from?</button>
-      <div class="faq-answer">
-        <!-- @risg99 - Start of answer 2 -->
-        <!-- We use real-time data from the <a href="https://platform.opentargets.org" target="_blank"
-          style="color: #8958FE;">Open Targets Platform</a>, which integrates public data to map relationships between
-        diseases and genes. -->
-        We use data from the <a href="https://platform.opentargets.org" target="_blank" style="color: #8958FE;">Open
-          Targets Platform</a>, a public database that connects genes, diseases, and
-        drugs. Our tool sends real-time queries to the Open Targets GraphQL API to get the most updated information.
-        <!-- @risg99 - End of answer 2 -->
-      </div>
-    </div>
+    .biomarker-faq-header {
+        text-align: center;
+        margin-bottom: 56px;
+    }
 
-    <div class="faq-item">
-      <!-- @risg99 - Start of FAQ update 3 -->
-      <!-- <button class="faq-question">How is the biomarker summary generated?</button> -->
-      <button class="faq-question">How are the biomarker summaries generated?</button>
-      <div class="faq-answer">
-        <!-- We use AI (GPT-4) to generate concise, plain-language summaries of each biomarker's
-          role in a specific cancer type, based on Open Targets evidence. -->
-        We use AI (GPT-4) to generate concise, easy-to-understand and plain-language summaries
-        for each biomarker. These summaries are based on scientific evidence from Open Targets and tailored to each
-        specific disease.
-      </div>
-      <!-- @risg99 - End of FAQ update 3 -->
-    </div>
+    .biomarker-faq-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+        opacity: 0;
+        animation: biomarkerFaqFadeIn 0.6s ease forwards;
+    }
 
-    <div class="faq-item">
-      <button class="faq-question">What does the "Score" mean?</button>
-      <!-- @risg99 - Start of answer 4 -->
-      <div class="faq-answer">
-        <!-- Open Targets provides this score from 0–1 based on evidence linking the biomarker to the
-        disease. A higher score means a stronger evidence-backed association.  -->
-        The score (0 to 1) comes from Open Targets and reflects how strongly a biomarker is
-        linked to a disease. A higher score means there's more evidence supporting that connection.
-      </div>
-      <!-- @risg99 - End of answer 4 -->
-    </div>
+    .biomarker-faq-container h2 {
+        font-size: 42px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 16px;
+        opacity: 0;
+        animation: biomarkerFaqFadeIn 0.6s ease forwards 0.1s;
+    }
 
-    <!-- @risg99 - Start of FAQ add 5 -->
-    <div class="faq-item">
-      <button class="faq-question">What do “predictive,” “prognostic,” and “diagnostic” mean?</button>
-      <div class="faq-answer">
-        <ul>
-          <li><b>Predictive</b> biomarkers help show if a treatment is likely to work.</li>
-          <li><b>Prognostic</b> biomarkers give information about the likely course or outcome of a disease.</li>
-          <li><b>Diagnostic</b> biomarkers help confirm the presence of a disease.</li>
-        </ul>
-      </div>
-    </div>
-    <!-- @risg99 - End of FAQ add 5 -->
+    .biomarker-faq-subtitle {
+        font-size: 18px;
+        color: #718096;
+        max-width: 600px;
+        margin: 0 auto 0;
+        line-height: 1.6;
+        opacity: 0;
+        animation: biomarkerFaqFadeIn 0.6s ease forwards 0.2s;
+    }
 
+    .biomarker-faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
 
-    <!-- @risg99 - Start of FAQ add 6 -->
+    .biomarker-faq-item {
+        background: #ffffff;
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        opacity: 0;
+        animation: biomarkerFaqFadeInUp 0.5s ease forwards;
+    }
 
-    <div class="faq-item">
-      <button class="faq-question">What’s the "Toggle for Visual Mode" for?</button>
-      <div class="faq-answer">
-        It is a feature that allows users to switch to a graphical representation of the data.
-        The graph view lets you visually explore how diseases are connected to biomarkers and drugs.
-        Each node is color-coded:
-        <ul>
-          <li><span style="color:#4361ee;">■</span> Disease</li>
-          <li>
-            Biomarkers:
-            <ul>
-              <li><span style="color:#ffd166;">■</span> Prognostic </li>
-              <li><span style="color:#06d6a0;">■</span> Predictive </li>
-              <li><span style="color:#ef476f;">■</span> Diagnostic </li>
-            </ul>
-          </li>
-          <li><span style="color:#ff69b4;">■</span> Drugs </li>
-        </ul>
-        This mode helps users spot patterns, relationships, and potential therapeutic links more easily.
-      </div>
-    </div>
-    <!-- @risg99 - End of FAQ add 6 -->
+    .biomarker-faq-item:nth-child(1) { animation-delay: 0.1s; }
+    .biomarker-faq-item:nth-child(2) { animation-delay: 0.15s; }
+    .biomarker-faq-item:nth-child(3) { animation-delay: 0.2s; }
+    .biomarker-faq-item:nth-child(4) { animation-delay: 0.25s; }
+    .biomarker-faq-item:nth-child(5) { animation-delay: 0.3s; }
+    .biomarker-faq-item:nth-child(6) { animation-delay: 0.35s; }
+    .biomarker-faq-item:nth-child(7) { animation-delay: 0.4s; }
+    .biomarker-faq-item:nth-child(8) { animation-delay: 0.45s; }
+    .biomarker-faq-item:nth-child(9) { animation-delay: 0.5s; }
+    .biomarker-faq-item:nth-child(10) { animation-delay: 0.55s; }
 
-    <!-- @risg99 - Start of FAQ add 7 -->
-    <div class="faq-item">
-      <button class="faq-question">Can I download or export the results?</button>
-      <div class="faq-answer">
-        Yes! You can export the results as CSV or PDF files. Additionally, the platform provides shareable links so you
-        can easily share your findings with others.
-      </div>
-    </div>
-    <!-- @risg99 - End of FAQ add 7 -->
+    .biomarker-faq-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.12);
+    }
 
-    <!-- @risg99 - Start of FAQ add 8 -->
-    <div class="faq-item">
-      <button class="faq-question">How often is the biomarker data updated?</button>
-      <div class="faq-answer">
-        The data is fetched in real time from the Open Targets Platform API, which is regularly updated as new
-        scientific
-        evidence becomes available. This ensures you're always seeing the latest available insights.
-      </div>
-    </div>
-    <!-- @risg99 - End of FAQ add 8 -->
+    .biomarker-faq-item.active {
+        border-color: #667eea;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+    }
 
-    <div class="faq-item">
-      <button class="faq-question">Can I use this tool for clinical decisions?</button>
-      <div class="faq-answer">No. This tool is for educational and exploratory purposes only. It is not intended to
-        guide clinical practice.</div>
-    </div>
-
-    <!-- @risg99 - Start of FAQ add 10 -->
-    <div class="faq-item">
-      <button class="faq-question">How can I suggest a new feature or report a bug?</button>
-      <div class="faq-answer">
-        We would love your feedback! You can reach out to the development team through the contact form. Feature
-        suggestions, bug reports, and general feedback are all welcome.
-      </div>
-    </div>
-    <!-- @risg99 - End of FAQ add 10 -->
-
-    <style>
-      .faq-item {
-        border-bottom: 1px solid #ccc;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-      }
-
-      .faq-question {
+    .biomarker-faq-question {
         background: none;
         border: none;
-        color: #2036F5;
-        font-size: 16px;
-        font-weight: bold;
-        padding: 12px 0;
+        color: #2d3748;
+        font-size: 17px;
+        font-weight: 700;
+        padding: 24px 28px;
         text-align: left;
         width: 100%;
         cursor: pointer;
         display: flex;
         align-items: center;
-        transition: color 0.3s ease;
-      }
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        position: relative;
+    }
 
-      .faq-question:hover {
-        color: #0f1cc9;
-      }
+    .biomarker-faq-question:hover {
+        color: #667eea;
+    }
 
-      .faq-answer {
+    .biomarker-faq-item.active .biomarker-faq-question {
+        color: #667eea;
+    }
+
+    .biomarker-faq-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-radius: 8px;
+        flex-shrink: 0;
+        margin-left: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .biomarker-faq-icon::before {
+        content: '+';
+        font-size: 20px;
+        font-weight: 700;
+        color: #667eea;
+        transition: transform 0.3s ease;
+    }
+
+    .biomarker-faq-item.active .biomarker-faq-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .biomarker-faq-item.active .biomarker-faq-icon::before {
+        content: '−';
+        color: #ffffff;
+        transform: rotate(180deg);
+    }
+
+    .biomarker-faq-answer {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.4s ease, padding 0.3s ease;
-        color: #333;
+        color: #718096;
         font-size: 15px;
-        padding-left: 12px;
-      }
+        line-height: 1.7;
+        padding: 0 28px;
+    }
 
-      .faq-item.active .faq-answer {
-        max-height: 300px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-      }
+    .biomarker-faq-item.active .biomarker-faq-answer {
+        max-height: 600px;
+        padding: 0 28px 24px 28px;
+    }
 
-      .faq-question::before {
-        content: "➕";
-        margin-right: 8px;
-        transition: transform 0.3s ease;
-      }
+    .biomarker-faq-answer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
 
-      .faq-item.active .faq-question::before {
-        content: "➖";
-      }
-    </style>
+    .biomarker-faq-answer a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
 
-    <script>
-      document.querySelectorAll(".faq-question").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const item = btn.parentElement;
-          item.classList.toggle("active");
-        });
-      });
-    </script>
-  </div>
+    .biomarker-faq-answer ul {
+        margin: 12px 0 0 20px;
+        padding: 0;
+    }
+
+    .biomarker-faq-answer li {
+        margin-bottom: 8px;
+        color: #718096;
+    }
+
+    .biomarker-faq-answer b {
+        color: #2d3748;
+        font-weight: 600;
+    }
+
+    .biomarker-color-legend {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 4px;
+    }
+
+    .biomarker-color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+    @keyframes biomarkerFaqFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes biomarkerFaqFadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .biomarker-faq-wrapper {
+            padding: 60px 20px;
+        }
+
+        .biomarker-faq-container h2 {
+            font-size: 36px;
+        }
+
+        .biomarker-faq-subtitle {
+            font-size: 16px;
+        }
+
+        .biomarker-faq-question {
+            font-size: 16px;
+            padding: 20px 20px;
+        }
+
+        .biomarker-faq-answer {
+            font-size: 14px;
+            padding: 0 20px;
+        }
+
+        .biomarker-faq-item.active .biomarker-faq-answer {
+            padding: 0 20px 20px 20px;
+        }
+
+        .biomarker-faq-icon {
+            width: 28px;
+            height: 28px;
+            margin-left: 12px;
+        }
+
+        .biomarker-faq-icon::before {
+            font-size: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .biomarker-faq-wrapper {
+            padding: 48px 16px;
+        }
+
+        .biomarker-faq-header {
+            margin-bottom: 40px;
+        }
+
+        .biomarker-faq-container h2 {
+            font-size: 32px;
+        }
+
+        .biomarker-faq-question {
+            font-size: 15px;
+            padding: 18px 16px;
+        }
+
+        .biomarker-faq-answer {
+            font-size: 14px;
+            padding: 0 16px;
+        }
+
+        .biomarker-faq-item.active .biomarker-faq-answer {
+            padding: 0 16px 18px 16px;
+        }
+    }
+</style>
+
+<div class="biomarker-faq-wrapper">
+    <div class="biomarker-faq-container">
+        <div class="biomarker-faq-header">
+            <div class="biomarker-faq-badge">Got Questions?</div>
+            <h2>Frequently Asked Questions</h2>
+            <p class="biomarker-faq-subtitle">Everything you need to know about BiomarkerFinder</p>
+        </div>
+
+        <div class="biomarker-faq-list">
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>What is a biomarker?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    A biomarker is a biological molecule — such as a gene, protein, or genetic mutation — that provides information about a medical condition. It can help detect a disease, predict how it may progress, or indicate how well a treatment is working. In cancer, biomarkers are used for diagnosis, prognosis, and guiding treatment decisions.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>Where does the biomarker data come from?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    We use data from the <a href="https://platform.opentargets.org" target="_blank">Open Targets Platform</a>, a public database that connects genes, diseases, and drugs. Our tool sends real-time queries to the Open Targets GraphQL API to get the most updated information.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>How are the biomarker summaries generated?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    We use AI (GPT-4) to generate concise, easy-to-understand and plain-language summaries for each biomarker. These summaries are based on scientific evidence from Open Targets and tailored to each specific disease.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>What does the "Score" mean?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    The score (0 to 1) comes from Open Targets and reflects how strongly a biomarker is linked to a disease. A higher score means there's more evidence supporting that connection.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>What do "predictive," "prognostic," and "diagnostic" mean?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    <ul>
+                        <li><b>Predictive</b> biomarkers indicate how likely a patient is to respond to a particular treatment.</li>
+                        <li><b>Prognostic</b> biomarkers provide information about the likely course or outcome of a disease, regardless of therapy.</li>
+                        <li><b>Diagnostic</b> biomarkers confirm or help identify the presence of a specific disease or condition.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>What's the "Toggle for Visual Mode" for?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    It is a feature that allows users to switch to a graphical representation of the data. The graph view lets you visually explore how diseases are connected to biomarkers and drugs. Each node is color-coded:
+                    <ul>
+                        <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #4361ee;"></span>Disease</span></li>
+                        <li>Biomarkers:
+                            <ul>
+                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ffd166;"></span>Prognostic</span></li>
+                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #06d6a0;"></span>Predictive</span></li>
+                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ef476f;"></span>Diagnostic</span></li>
+                            </ul>
+                        </li>
+                        <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ff69b4;"></span>Drugs</span></li>
+                    </ul>
+                    This mode helps users spot patterns, relationships, and potential therapeutic links more easily.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>Can I download or export the results?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    Yes! You can export the results as CSV or PDF files. Additionally, the platform provides shareable links so you can easily share your findings with others.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>How often is the biomarker data updated?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    The data is fetched in real time from the Open Targets Platform API, which is regularly updated as new scientific evidence becomes available. This ensures you're always seeing the latest available insights.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>Can I use this tool for clinical decisions?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    No. This tool is for educational and exploratory purposes only. It is not intended to guide clinical practice.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>How can I suggest a new feature or report a bug?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    We would love your feedback! You can reach out to the development team through the contact form. Feature suggestions, bug reports, and general feedback are all welcome.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    (function() {
+        document.querySelectorAll(".biomarker-faq-question").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const item = btn.closest(".biomarker-faq-item");
+                
+                // Close other items
+                document.querySelectorAll(".biomarker-faq-item").forEach((otherItem) => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove("active");
+                    }
+                });
+                
+                // Toggle current item
+                item.classList.toggle("active");
+            });
+        });
+    })();
+</script>
