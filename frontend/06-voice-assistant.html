@@ -250,6 +250,28 @@
       border-color: #667eea;
     }
 
+    .voice-related-questions {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f7fafc;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+
+    .voice-related-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .voice-related-title i {
+      color: #667eea;
+    }
+
     .voice-progress-container {
       background: #f7fafc;
       border-radius: 12px;
@@ -449,6 +471,15 @@
       .voice-progress-text {
         font-size: 13px;
       }
+
+      .voice-related-questions {
+        padding: 14px;
+        margin-top: 16px;
+      }
+
+      .voice-related-title {
+        font-size: 13px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -503,6 +534,15 @@
 
       .voice-response-text {
         font-size: 14px;
+      }
+
+      .voice-related-questions {
+        padding: 12px;
+        margin-top: 12px;
+      }
+
+      .voice-related-title {
+        font-size: 12px;
       }
     }
   </style>
@@ -587,6 +627,15 @@
           <div class="voice-audio-label">Spoken Answer</div>
           <div class="voice-audio-duration">Click to play audio response</div>
         </div>
+      </div>
+
+      <!-- Related Questions -->
+      <div id="relatedQuestions" class="voice-related-questions" style="display: none;">
+        <div class="voice-related-title">
+          <i class="fas fa-lightbulb"></i>
+          <span>Related questions you might ask:</span>
+        </div>
+        <div id="relatedQuestionsContainer"></div>
       </div>
     </div>
 
@@ -684,6 +733,38 @@
       document.getElementById('progressContainer').classList.remove('show');
     }
 
+    function generateRelatedQuestions(disease) {
+      // Template-based related questions
+      const templates = [
+        `What are the treatment options for ${disease}?`,
+        `What causes ${disease}?`,
+        `How is ${disease} diagnosed?`,
+        `What are the symptoms of ${disease}?`,
+        `What is the prognosis for ${disease}?`,
+        `Are there clinical trials for ${disease}?`
+      ];
+
+      // Randomly select 3 questions
+      const shuffled = templates.sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, 3);
+    }
+
+    function showRelatedQuestions(disease) {
+      const relatedQuestionsDiv = document.getElementById('relatedQuestions');
+      const container = document.getElementById('relatedQuestionsContainer');
+
+      // Generate questions
+      const questions = generateRelatedQuestions(disease);
+
+      // Create chips
+      container.innerHTML = questions.map(q =>
+        `<span class="voice-example-chip" onclick="setExample('${q.replace(/'/g, "\\'")}')">${q}</span>`
+      ).join('');
+
+      // Show the section
+      relatedQuestionsDiv.style.display = 'block';
+    }
+
     function setExample(text) {
       document.getElementById('voiceInput').value = text;
       askQuestion();
@@ -769,6 +850,8 @@
         setTimeout(() => {
           hideProgress();
           responseContainer.classList.add('show');
+          // Show related questions
+          showRelatedQuestions(data.disease);
         }, 500);
 
         // Auto-play audio
