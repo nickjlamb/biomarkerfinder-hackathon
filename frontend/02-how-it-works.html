@@ -200,6 +200,48 @@
         }
     }
 
+    .biomarker-cta-container {
+        text-align: center;
+        margin-top: 56px;
+        opacity: 0;
+        animation: biomarkerHowFadeIn 0.6s ease forwards 0.6s;
+    }
+
+    .biomarker-cta-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        text-decoration: none;
+    }
+
+    .biomarker-cta-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+    }
+
+    .biomarker-cta-btn:active {
+        transform: translateY(-2px);
+    }
+
+    .biomarker-cta-btn .material-icons {
+        font-size: 24px;
+        transition: transform 0.3s ease;
+    }
+
+    .biomarker-cta-btn:hover .material-icons {
+        transform: translateX(4px);
+    }
+
     @media (max-width: 600px) {
         .biomarker-how-it-works {
             padding: 48px 16px;
@@ -251,6 +293,15 @@
         .biomarker-step-description {
             font-size: 14px;
         }
+
+        .biomarker-cta-container {
+            margin-top: 40px;
+        }
+
+        .biomarker-cta-btn {
+            font-size: 16px;
+            padding: 16px 32px;
+        }
     }
 </style>
 
@@ -261,6 +312,12 @@
         <p class="biomarker-how-section-subtitle">Three simple steps to discover, understand, and export biomarker insights</p>
     </div>
     <div class="biomarker-steps-container" id="biomarkerStepsContainer"></div>
+    <div class="biomarker-cta-container">
+        <button class="biomarker-cta-btn" id="biomarkerStartBtn">
+            Start Exploring
+            <span class="material-icons">arrow_forward</span>
+        </button>
+    </div>
 </section>
 
 <script>
@@ -298,5 +355,28 @@
             `;
             stepsContainer.appendChild(stepElement);
         });
+
+        // CTA button scroll to tool
+        const ctaBtn = document.getElementById('biomarkerStartBtn');
+        if (ctaBtn) {
+            ctaBtn.addEventListener('click', function() {
+                // Scroll to the next section (tool section)
+                const howItWorksSection = document.querySelector('.biomarker-how-it-works');
+                const nextSection = howItWorksSection.nextElementSibling;
+
+                if (nextSection) {
+                    nextSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    // Fallback: scroll down by section height
+                    window.scrollBy({
+                        top: window.innerHeight * 0.8,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
     })();
 </script>
