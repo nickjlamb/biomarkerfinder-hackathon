@@ -13,6 +13,8 @@
     const voiceSummaryText = document.getElementById("voiceSummaryText");
     const voiceSummaryAudio = document.getElementById("voiceSummaryAudio");
     const copyVoiceSummary = document.getElementById("copyVoiceSummary");
+    const relatedQuestions = document.getElementById("relatedQuestions");
+    const relatedQuestionsChips = document.getElementById("relatedQuestionsChips");
 
     // Voice recognition setup
     let recognition;
@@ -136,6 +138,9 @@
         // Show the voice summary container
         voiceSummaryContainer.style.display = 'block';
 
+        // Show related questions
+        showRelatedQuestions(data.disease);
+
         // Auto-play the audio
         setTimeout(() => {
           voiceSummaryAudio.play().catch(err => {
@@ -158,6 +163,40 @@
       }
       const byteArray = new Uint8Array(byteNumbers);
       return new Blob([byteArray], { type: mimeType });
+    }
+
+    // Generate and display related questions
+    function showRelatedQuestions(diseaseName) {
+      const questionTemplates = [
+        `Which biomarkers are most strongly associated with ${diseaseName}?`,
+        `How do these biomarkers affect disease progression in ${diseaseName}?`,
+        `Are any of these biomarkers used to predict treatment response in ${diseaseName}?`,
+        `Which drugs target these biomarkers in ${diseaseName}?`,
+        `How reliable are these biomarkers for early diagnosis of ${diseaseName}?`,
+        `What molecular mechanisms link these biomarkers to ${diseaseName}?`
+      ];
+
+      // Randomly select 3 questions
+      const shuffled = questionTemplates.sort(() => 0.5 - Math.random());
+      const selectedQuestions = shuffled.slice(0, 3);
+
+      // Clear previous questions
+      relatedQuestionsChips.innerHTML = '';
+
+      // Create chips for each question
+      selectedQuestions.forEach(question => {
+        const chip = document.createElement('div');
+        chip.className = 'related-question-chip';
+        chip.textContent = question;
+        chip.addEventListener('click', () => {
+          input.value = question;
+          searchBiomarkers(question);
+        });
+        relatedQuestionsChips.appendChild(chip);
+      });
+
+      // Show the related questions section
+      relatedQuestions.style.display = 'block';
     }
 
     // Copy voice summary to clipboard
@@ -381,6 +420,7 @@
       loadingSpinner.style.display = "inline";
       output.innerHTML = "";
       voiceSummaryContainer.style.display = "none"; // Hide previous voice summary
+      relatedQuestions.style.display = "none"; // Hide previous related questions
 
       // Show initial progress
       showProgress(20, 'Looking up disease...');
