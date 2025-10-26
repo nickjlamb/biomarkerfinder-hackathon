@@ -813,15 +813,25 @@
 
         // Add toggle button event listener
         toggleBtn.addEventListener("click", () => {
+          const resultHeader = document.querySelector(".result-header");
+          const exportButtons = document.querySelector(".export-buttons");
+          const biomarkerGrid = document.querySelector(".biomarker-grid");
+
           const isVisual = cyContainer.style.display === "block";
           if (isVisual) {
+            // Switch to List Mode
             cyContainer.style.display = "none";
-            document.getElementById("output").style.display = "block";
+            if (resultHeader) resultHeader.style.display = "block";
+            if (exportButtons) exportButtons.style.display = "flex";
+            if (biomarkerGrid) biomarkerGrid.style.display = "grid";
             toggleBtn.textContent = "Toggle to Visual Mode";
             visualControls.style.display = "none";
           } else {
+            // Switch to Visual Mode
             cyContainer.style.display = "block";
-            document.getElementById("output").style.display = "none";
+            if (resultHeader) resultHeader.style.display = "none";
+            if (exportButtons) exportButtons.style.display = "none";
+            if (biomarkerGrid) biomarkerGrid.style.display = "none";
             toggleBtn.textContent = "Toggle to List Mode";
             visualControls.style.display = "flex";
           }
