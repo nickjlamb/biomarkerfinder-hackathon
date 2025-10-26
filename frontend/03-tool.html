@@ -143,7 +143,7 @@
 
     #diseaseInput {
       width: 100%;
-      padding: 16px 45px 16px 20px;
+      padding: 16px 90px 16px 20px;
       font-size: 16px;
       border: 2px solid #e9ecef;
       border-radius: 20px;
@@ -159,12 +159,71 @@
 
     .input-icon {
       position: absolute;
-      right: 15px;
+      right: 60px;
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-secondary);
       pointer-events: none;
       transition: var(--transition);
+    }
+
+    .mic-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: white;
+      border-radius: 10px;
+      color: #667eea;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .mic-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .mic-btn.listening {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+      50% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    }
+
+    .voice-selector {
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      background: white;
+      font-size: 14px;
+      color: #2d3748;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      outline: none;
+      min-width: 200px;
+    }
+
+    .voice-selector:hover {
+      border-color: #667eea;
+    }
+
+    .voice-selector:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
     #diseaseInput:focus+.input-icon {
@@ -592,6 +651,11 @@
         width: 18px;
         height: 18px;
       }
+
+      .voice-selector {
+        width: 100%;
+        min-width: auto;
+      }
     }
 
     @media (max-width: 480px) {
@@ -795,10 +859,19 @@
         <div class="input-group">
           <div class="input-container">
             <input id="diseaseInput" type="text"
-              placeholder="Enter a disease name (e.g., breast cancer, melanoma, leukemia)" autocomplete="off">
+              placeholder="Type or speak a disease name or question..." autocomplete="off">
             <div id="autocomplete-list" class="autocomplete-suggestions"></div>
             <i class="input-icon fas fa-search"></i>
+            <button id="micBtn" class="mic-btn" title="Use voice input">
+              <i class="fas fa-microphone"></i>
+            </button>
           </div>
+          <select id="voiceSelector" class="voice-selector" title="Choose AI voice">
+            <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Warm Female)</option>
+            <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep Male)</option>
+            <option value="EXAVITQu4vr4xnSDxMaL">Bella (Clear Female)</option>
+            <option value="N2lVS1w4EtoT3dr4eOWO">Callum (British Male)</option>
+          </select>
           <button id="getBiomarkersBtn">
             <span id="buttonText">Find Biomarkers</span>
             <span id="loadingSpinner" style="display: none;"><span class="loading-spinner"></span></span>
@@ -888,6 +961,79 @@
     const loadingSpinner = document.getElementById("loadingSpinner");
     const recentSearchTags = document.querySelectorAll(".recent-search-tag");
     const autocompleteList = document.getElementById("autocomplete-list");
+    const micBtn = document.getElementById("micBtn");
+    const voiceSelector = document.getElementById("voiceSelector");
+
+    // Voice recognition setup
+    let recognition;
+    let selectedVoiceId = "21m00Tcm4TlvDq8ikWAM"; // Default: Rachel
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        input.value = transcript;
+        micBtn.classList.remove('listening');
+        // Automatically trigger search with voice input
+        searchBiomarkers(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        micBtn.classList.remove('listening');
+
+        let errorMessage = 'Voice input error. ';
+        if (event.error === 'no-speech') {
+          errorMessage += 'No speech detected. Please try again.';
+        } else if (event.error === 'not-allowed') {
+          errorMessage += 'Microphone access denied. Please enable it in your browser settings.';
+        } else {
+          errorMessage += 'Please try typing instead.';
+        }
+        alert(errorMessage);
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('listening');
+      };
+    }
+
+    // Mic button click handler
+    if (micBtn) {
+      micBtn.addEventListener('click', () => {
+        if (recognition) {
+          if (micBtn.classList.contains('listening')) {
+            // Stop listening if already active
+            recognition.stop();
+            micBtn.classList.remove('listening');
+          } else {
+            // Start listening
+            micBtn.classList.add('listening');
+            try {
+              recognition.start();
+            } catch (error) {
+              console.error('Error starting recognition:', error);
+              micBtn.classList.remove('listening');
+            }
+          }
+        } else {
+          alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+        }
+      });
+    }
+
+    // Voice selector change handler
+    if (voiceSelector) {
+      voiceSelector.addEventListener('change', (e) => {
+        selectedVoiceId = e.target.value;
+        console.log('Selected voice:', selectedVoiceId);
+      });
+    }
 
     // @risg99 - Start of Toggle button and Cytoscape references
     const toggleBtn = document.getElementById("toggleViewBtn");
