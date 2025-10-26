@@ -220,7 +220,7 @@
     /* Sound Wave Visualization */
     .sound-wave {
       position: absolute;
-      right: 50px;
+      right: 100px;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
