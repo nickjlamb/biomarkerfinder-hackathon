@@ -6,6 +6,7 @@
     const loadingSpinner = document.getElementById("loadingSpinner");
     const recentSearchTags = document.querySelectorAll(".recent-search-tag");
     const autocompleteList = document.getElementById("autocomplete-list");
+    const searchIcon = document.querySelector(".input-icon");
     const micBtn = document.getElementById("micBtn");
     const clearBtn = document.getElementById("clearBtn");
     const voiceSelector = document.getElementById("voiceSelector");
@@ -89,20 +90,23 @@
     }
 
     // Clear button functionality
-    if (clearBtn) {
-      // Show/hide clear button based on input value
+    if (clearBtn && searchIcon) {
+      // Show/hide clear button and search icon based on input value
       input.addEventListener('input', () => {
         if (input.value.trim()) {
-          clearBtn.style.display = 'flex';
+          clearBtn.classList.add('show');
+          searchIcon.classList.add('hide');
         } else {
-          clearBtn.style.display = 'none';
+          clearBtn.classList.remove('show');
+          searchIcon.classList.remove('hide');
         }
       });
 
       // Clear input when clicked
       clearBtn.addEventListener('click', () => {
         input.value = '';
-        clearBtn.style.display = 'none';
+        clearBtn.classList.remove('show');
+        searchIcon.classList.remove('hide');
         autocompleteList.style.display = 'none';
         input.focus();
       });
