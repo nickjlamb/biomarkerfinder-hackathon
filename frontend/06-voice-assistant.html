@@ -162,6 +162,40 @@
       line-height: 1.7;
       color: #4a5568;
       margin-bottom: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    .voice-sentence {
+      transition: background-color 0.3s ease, color 0.3s ease;
+      border-radius: 4px;
+      padding: 2px 4px;
+      margin: 0 -4px;
+    }
+
+    .voice-sentence.highlight {
+      background-color: #e6f2ff;
+      color: #2c5282;
+      font-weight: 500;
+    }
+
+    .voice-response-text::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .voice-response-text::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    .voice-response-text::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 3px;
+    }
+
+    .voice-response-text::-webkit-scrollbar-thumb:hover {
+      background: #a0aec0;
     }
 
     .voice-audio-player {
@@ -437,6 +471,11 @@
       .voice-response-text {
         font-size: 14px;
         line-height: 1.6;
+        max-height: 250px;
+      }
+
+      .voice-response-text::-webkit-scrollbar {
+        width: 4px;
       }
 
       .voice-examples {
@@ -509,6 +548,15 @@
       .voice-progress-spinner {
         width: 16px;
         height: 16px;
+      }
+
+      .voice-response-text {
+        max-height: 200px;
+        font-size: 14px;
+      }
+
+      .voice-response-text::-webkit-scrollbar {
+        width: 3px;
       }
     }
   </style>
@@ -608,6 +656,8 @@
     let isPlaying = false;
     let recognition = null;
     let isListening = false;
+    let highlightIntervals = [];
+    let currentHighlightIndex = -1;
 
     // Initialize Web Speech API
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -691,6 +741,72 @@
       document.getElementById('progressContainer').classList.remove('show');
     }
 
+    function splitIntoSentences(text) {
+      // Split text into sentences, preserving the delimiters
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      return sentences.map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function formatTextWithHighlights(text) {
+      const sentences = splitIntoSentences(text);
+      return sentences.map((sentence, index) =>
+        `<span class="voice-sentence" data-index="${index}">${sentence}</span>`
+      ).join(' ');
+    }
+
+    function startHighlighting(audioDuration) {
+      // Clear any existing highlights
+      stopHighlighting();
+
+      const sentences = document.querySelectorAll('.voice-sentence');
+      if (sentences.length === 0) return;
+
+      // Calculate time per sentence
+      const timePerSentence = (audioDuration * 1000) / sentences.length;
+
+      let currentIndex = 0;
+
+      // Highlight first sentence immediately
+      if (sentences[0]) {
+        sentences[0].classList.add('highlight');
+        sentences[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentHighlightIndex = 0;
+      }
+
+      // Schedule remaining highlights
+      const interval = setInterval(() => {
+        // Remove previous highlight
+        if (sentences[currentIndex]) {
+          sentences[currentIndex].classList.remove('highlight');
+        }
+
+        currentIndex++;
+
+        // Add new highlight
+        if (currentIndex < sentences.length) {
+          sentences[currentIndex].classList.add('highlight');
+          sentences[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlightIndex = currentIndex;
+        } else {
+          clearInterval(interval);
+          currentHighlightIndex = -1;
+        }
+      }, timePerSentence);
+
+      highlightIntervals.push(interval);
+    }
+
+    function stopHighlighting() {
+      // Clear all intervals
+      highlightIntervals.forEach(interval => clearInterval(interval));
+      highlightIntervals = [];
+      currentHighlightIndex = -1;
+
+      // Remove all highlights
+      const sentences = document.querySelectorAll('.voice-sentence');
+      sentences.forEach(sentence => sentence.classList.remove('highlight'));
+    }
+
     function setExample(text) {
       document.getElementById('voiceInput').value = text;
       askQuestion();
@@ -764,7 +880,7 @@
         // Display response
         document.getElementById('responseDisease').textContent = data.disease;
         document.getElementById('responseCount').textContent = `${data.biomarkerCount} biomarkers found`;
-        document.getElementById('responseText').textContent = data.text;
+        document.getElementById('responseText').innerHTML = formatTextWithHighlights(data.text);
 
         // Setup audio
         const audioPlayer = document.getElementById('audioPlayer');
@@ -772,6 +888,18 @@
         const audioUrl = URL.createObjectURL(audioBlob);
         audioPlayer.src = audioUrl;
         currentAudio = audioPlayer;
+
+        // Add event listeners for audio
+        audioPlayer.onloadedmetadata = () => {
+          // Store duration for highlighting
+          audioPlayer.dataset.duration = audioPlayer.duration;
+        };
+
+        audioPlayer.onended = () => {
+          isPlaying = false;
+          document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+          stopHighlighting();
+        };
 
         // Hide progress and show response after brief delay
         setTimeout(() => {
@@ -808,10 +936,11 @@
         isPlaying = true;
         document.getElementById('playBtn').innerHTML = '<i class="fas fa-pause"></i>';
 
-        currentAudio.onended = () => {
-          isPlaying = false;
-          document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
-        };
+        // Start highlighting if we have duration
+        const duration = parseFloat(currentAudio.dataset.duration || currentAudio.duration);
+        if (duration) {
+          startHighlighting(duration);
+        }
       }
     }
 
@@ -820,6 +949,7 @@
         currentAudio.pause();
         isPlaying = false;
         document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+        stopHighlighting();
       }
     }
 
