@@ -7,6 +7,7 @@
     const recentSearchTags = document.querySelectorAll(".recent-search-tag");
     const autocompleteList = document.getElementById("autocomplete-list");
     const micBtn = document.getElementById("micBtn");
+    const clearBtn = document.getElementById("clearBtn");
     const voiceSelector = document.getElementById("voiceSelector");
     const voiceSummaryContainer = document.getElementById("voiceSummaryContainer");
     const voiceSummaryDisease = document.getElementById("voiceSummaryDisease");
@@ -84,6 +85,26 @@
       voiceSelector.addEventListener('change', (e) => {
         selectedVoiceId = e.target.value;
         console.log('Selected voice:', selectedVoiceId);
+      });
+    }
+
+    // Clear button functionality
+    if (clearBtn) {
+      // Show/hide clear button based on input value
+      input.addEventListener('input', () => {
+        if (input.value.trim()) {
+          clearBtn.style.display = 'flex';
+        } else {
+          clearBtn.style.display = 'none';
+        }
+      });
+
+      // Clear input when clicked
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.style.display = 'none';
+        autocompleteList.style.display = 'none';
+        input.focus();
       });
     }
 
