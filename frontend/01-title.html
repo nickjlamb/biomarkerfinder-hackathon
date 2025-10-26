@@ -365,7 +365,44 @@
         opacity: 0;
         animation: biomarkerFadeInUp 0.6s ease forwards 0.3s;
         max-width: 600px;
-        margin: 0 auto;
+        margin: 0 auto 32px;
+    }
+
+    .biomarker-hero-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 48px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        text-decoration: none;
+        opacity: 0;
+        animation: biomarkerFadeInUp 0.6s ease forwards 0.4s;
+    }
+
+    .biomarker-hero-cta:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 40px rgba(102, 126, 234, 0.5);
+    }
+
+    .biomarker-hero-cta:active {
+        transform: translateY(-2px);
+    }
+
+    .biomarker-hero-cta i {
+        font-size: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .biomarker-hero-cta:hover i {
+        transform: translateX(4px);
     }
 
     @keyframes biomarkerFadeInDown {
@@ -453,6 +490,11 @@
             font-size: 10px;
             padding: 7px 14px;
         }
+
+        .biomarker-hero-cta {
+            font-size: 17px;
+            padding: 18px 40px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -502,6 +544,11 @@
         .biomarker-header-subtitle {
             font-size: 14px;
         }
+
+        .biomarker-hero-cta {
+            font-size: 16px;
+            padding: 16px 32px;
+        }
     }
 </style>
 
@@ -515,11 +562,15 @@
             <i class="fas fa-info"></i>
         </button>
     </div>
-    
+
     <h1 class="biomarker-header-title">BiomarkerFinder</h1>
     <div class="biomarker-header-accent"></div>
     <p class="biomarker-header-tagline">Discover biomarkers faster. Understand them better.</p>
     <p class="biomarker-header-subtitle">AI-powered insights into complex biomarker data, explained in plain language.</p>
+    <button class="biomarker-hero-cta" id="biomarkerHeroCta">
+        Try It Now
+        <i class="fas fa-arrow-right"></i>
+    </button>
 </div>
 
 <div class="biomarker-info-modal" id="biomarkerInfoModal">
@@ -659,5 +710,42 @@
                 document.body.style.overflow = '';
             }
         });
+
+        // Hero CTA scroll to tool
+        const heroCta = document.getElementById('biomarkerHeroCta');
+        if (heroCta) {
+            heroCta.addEventListener('click', function() {
+                // Try multiple strategies to find the tool section
+                let toolSection = document.querySelector('.app-wrapper');
+
+                if (!toolSection) {
+                    toolSection = document.querySelector('.header');
+                }
+
+                if (!toolSection) {
+                    toolSection = document.querySelector('.search-container');
+                }
+
+                if (!toolSection) {
+                    const diseaseInput = document.getElementById('diseaseInput');
+                    if (diseaseInput) {
+                        toolSection = diseaseInput.closest('.container, .app-wrapper, section, div');
+                    }
+                }
+
+                if (toolSection) {
+                    toolSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    // Fallback: scroll down by viewport height
+                    window.scrollBy({
+                        top: window.innerHeight * 0.9,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
     })();
 </script>
