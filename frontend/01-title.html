@@ -19,6 +19,81 @@
         overflow: hidden;
     }
 
+    .biomarker-bg-animation {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .biomarker-floating-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.3;
+        animation: float 20s infinite ease-in-out;
+    }
+
+    .biomarker-floating-orb:nth-child(1) {
+        width: 300px;
+        height: 300px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        top: -100px;
+        left: -100px;
+        animation-duration: 25s;
+        animation-delay: 0s;
+    }
+
+    .biomarker-floating-orb:nth-child(2) {
+        width: 200px;
+        height: 200px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        top: 50%;
+        right: -80px;
+        animation-duration: 30s;
+        animation-delay: -5s;
+    }
+
+    .biomarker-floating-orb:nth-child(3) {
+        width: 250px;
+        height: 250px;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        bottom: -100px;
+        left: 20%;
+        animation-duration: 28s;
+        animation-delay: -10s;
+    }
+
+    .biomarker-floating-orb:nth-child(4) {
+        width: 180px;
+        height: 180px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        top: 20%;
+        right: 15%;
+        animation-duration: 22s;
+        animation-delay: -15s;
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+        }
+        33% {
+            transform: translate(30px, -30px) scale(1.1);
+        }
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+    }
+
+    .biomarker-header > * {
+        position: relative;
+        z-index: 1;
+    }
+
     .biomarker-info-button {
         display: inline-flex;
         align-items: center;
@@ -555,6 +630,13 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
 <div class="biomarker-header">
+    <div class="biomarker-bg-animation">
+        <div class="biomarker-floating-orb"></div>
+        <div class="biomarker-floating-orb"></div>
+        <div class="biomarker-floating-orb"></div>
+        <div class="biomarker-floating-orb"></div>
+    </div>
+
     <div class="biomarker-header-badge">
         <span class="biomarker-badge-dot"></span>
         Open Targets Hackathon 2025 Winner
