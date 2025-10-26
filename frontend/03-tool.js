@@ -106,9 +106,9 @@
     // @risg99 - End of Prefill functionality call
 
     // Fetch and display voice summary
-    async function fetchVoiceSummary(diseaseName) {
+    async function fetchVoiceSummary(diseaseName, customQuestion = null) {
       try {
-        const question = `What are the key biomarkers for ${diseaseName}?`;
+        const question = customQuestion || `What are the key biomarkers for ${diseaseName}?`;
 
         const response = await fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/askBiomarkerVoice", {
           method: "POST",
@@ -189,9 +189,10 @@
         chip.className = 'related-question-chip';
         chip.textContent = question;
         chip.dataset.disease = diseaseName; // Store disease name for search
+        chip.dataset.question = question; // Store full question for voice API
         chip.addEventListener('click', () => {
-          input.value = chip.dataset.disease; // Use disease name, not full question
-          searchBiomarkers(chip.dataset.disease);
+          input.value = chip.dataset.disease; // Use disease name for input
+          searchBiomarkers(chip.dataset.disease, chip.dataset.question); // Pass question to voice API
         });
         relatedQuestionsChips.appendChild(chip);
       });
@@ -402,7 +403,7 @@
     }
 
     // @risg99 - Start of Prefill functionality
-    async function searchBiomarkers(prefilledDisease) {
+    async function searchBiomarkers(prefilledDisease, customQuestion = null) {
       autocompleteList.style.display = 'none';
       const diseaseName = prefilledDisease || input.value.trim();
       if (!diseaseName) {
@@ -427,7 +428,7 @@
       showProgress(20, 'Looking up disease...');
 
       // Start fetching voice summary in parallel (don't await yet)
-      const voiceSummaryPromise = fetchVoiceSummary(diseaseName);
+      const voiceSummaryPromise = fetchVoiceSummary(diseaseName, customQuestion);
 
       try {
         // @risg99 - Start of call to fetchDiseaseEfoId
