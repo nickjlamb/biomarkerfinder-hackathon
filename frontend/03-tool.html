@@ -621,33 +621,6 @@
     }
     /* @risg99 - End of Export buttons styling */
 
-    /* @risg99 - Start of Share Link Container */
-    #shareLinkContainer {
-      background-color: #f0f4ff;
-      border: 1px solid #4361ee;
-      padding: 8px 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-    }
-
-    #shareLinkContainer a {
-      color: #4361ee;
-      text-decoration: underline;
-    }
-
-    #shareLinkContainer button {
-      background-color: #4361ee;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #shareLinkContainer button:hover {
-      background-color: #3a0ca3;
-    }
-    /* @risg99 - End of Share Link Container */
-
     /* @risg99 - Start of styling of tooltip */
     .cy-tooltip {
       background-color: #2d2d2d;
@@ -761,10 +734,6 @@
           <div class="recent-search-tag">Acute myeloid leukemia</div>
         </div>
       </div>
-
-      <!-- @risg99 - Start of Share Link Container -->
-      <div id="shareLinkContainer"></div>
-      <!-- @risg99 - End of Share Link Container -->
 
       <div class="output-container">
         <div id="output" class="biomarker-results">
@@ -1044,25 +1013,6 @@
         `;
         return;
       }
-
-      // --- Update the URL to make it shareable ---
-      const encodedDisease = encodeURIComponent(diseaseName);
-      const shareableUrl = `${window.location.origin}${window.location.pathname}?disease=${encodedDisease}`;
-
-      // Display shareable link in container
-      const shareContainer = document.getElementById("shareLinkContainer");
-      shareContainer.innerHTML = `
-        🔗 Shareable link: <a href="${shareableUrl}" target="_blank">${shareableUrl}</a>
-        <button id="copyLinkBtn" style="margin-left:6px; padding:2px 6px; font-size:12px;">Copy</button>
-      `;
-
-      // Add a single copy event listener
-      const copyBtn = document.getElementById("copyLinkBtn");
-      copyBtn.onclick = () => {
-        navigator.clipboard.writeText(shareableUrl);
-        alert("Link copied to clipboard!");
-      };
-      // @risg99 - End of Prefill functionality
 
       buttonText.style.display = "none";
       loadingSpinner.innerHTML = '<span class="loading-spinner"></span>';
