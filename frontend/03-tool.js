@@ -35,6 +35,11 @@
         input.value = transcript;
         micBtn.classList.remove('listening');
         if (soundWave) soundWave.style.display = 'none';
+        // Show clear button and hide search icon when voice input is set
+        if (clearBtn && searchIcon) {
+          clearBtn.classList.add('show');
+          searchIcon.classList.add('hide');
+        }
         // Automatically trigger search with voice input
         searchBiomarkers(transcript);
       };
