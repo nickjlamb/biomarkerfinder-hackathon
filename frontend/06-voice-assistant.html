@@ -316,6 +316,129 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .voice-assistant-container {
+        padding: 20px 12px;
+      }
+
+      .voice-header h2 {
+        font-size: 24px;
+      }
+
+      .voice-header p {
+        font-size: 14px;
+      }
+
+      .voice-input-container {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .voice-input-group {
+        gap: 8px;
+      }
+
+      .voice-input {
+        padding: 12px 14px;
+        font-size: 14px;
+        min-width: 0;
+      }
+
+      .voice-mic-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      .voice-ask-btn {
+        padding: 12px 20px;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      .voice-response-container {
+        padding: 16px;
+      }
+
+      .voice-response-header {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      .voice-response-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .voice-response-disease {
+        font-size: 16px;
+      }
+
+      .voice-response-count {
+        font-size: 13px;
+      }
+
+      .voice-response-text {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .voice-examples {
+        padding: 14px;
+      }
+
+      .voice-examples-title {
+        font-size: 13px;
+      }
+
+      .voice-example-chip {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .voice-assistant-container {
+        padding: 16px 8px;
+      }
+
+      .voice-input-container {
+        padding: 12px;
+      }
+
+      .voice-input-group {
+        gap: 6px;
+      }
+
+      .voice-input {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      .voice-mic-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .voice-ask-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+
+      #btnText {
+        display: none;
+      }
+
+      .voice-ask-btn i {
+        margin: 0;
+      }
+    }
   </style>
 </head>
 <body>
