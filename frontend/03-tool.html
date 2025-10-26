@@ -408,6 +408,50 @@
       outline: none;
     }
 
+    /* Show Full Analysis Button */
+    .show-full-analysis-btn {
+      width: 100%;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 16px;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .show-full-analysis-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .show-full-analysis-btn i {
+      font-size: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .show-full-analysis-btn.expanded i {
+      transform: rotate(180deg);
+    }
+
+    .full-analysis-subtitle {
+      font-size: 13px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+
+    .full-analysis-section {
+      animation: fadeIn 0.5s ease;
+    }
+
     .recent-searches {
       display: flex;
       gap: 10px;
@@ -755,6 +799,15 @@
         font-size: 14px;
         padding: 14px;
       }
+
+      .show-full-analysis-btn {
+        padding: 16px 20px;
+        font-size: 16px;
+      }
+
+      .full-analysis-subtitle {
+        font-size: 12px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -782,6 +835,19 @@
       .voice-summary-text {
         font-size: 13px;
         padding: 12px;
+      }
+
+      .show-full-analysis-btn {
+        padding: 14px 16px;
+        font-size: 15px;
+      }
+
+      .show-full-analysis-btn i {
+        font-size: 18px;
+      }
+
+      .full-analysis-subtitle {
+        font-size: 11px;
       }
     }
 
@@ -1616,15 +1682,22 @@
 
         // @risg99 - Start of Export buttons added
         let resultsHTML = `
-          <div class="result-header fade-in">
-            <h2 class="result-title">Top biomarkers for ${data.disease}</h2>
-          </div>
-          <div class="export-buttons">
-            <button id="exportCSV" class="export-btn"><i class="fas fa-file-csv"></i> Export to CSV</button>
-            <button id="exportPDF" class="export-btn"><i class="fas fa-file-pdf"></i> Download PDF Summary</button>
-          </div>
-          <div class="biomarker-grid">
-            ${biomarkerList}
+          <button id="showFullAnalysisBtn" class="show-full-analysis-btn">
+            <i class="fas fa-chevron-down"></i>
+            <span>Show Full Analysis</span>
+            <span class="full-analysis-subtitle">View detailed biomarker cards, scores, and network visualization</span>
+          </button>
+          <div id="fullAnalysisSection" class="full-analysis-section" style="display: none;">
+            <div class="result-header fade-in">
+              <h2 class="result-title">Top biomarkers for ${data.disease}</h2>
+            </div>
+            <div class="export-buttons">
+              <button id="exportCSV" class="export-btn"><i class="fas fa-file-csv"></i> Export to CSV</button>
+              <button id="exportPDF" class="export-btn"><i class="fas fa-file-pdf"></i> Download PDF Summary</button>
+            </div>
+            <div class="biomarker-grid">
+              ${biomarkerList}
+            </div>
           </div>
         `;
         // @risg99 - End of Export buttons added
@@ -1633,6 +1706,28 @@
         showProgress(100, 'Complete!');
 
         output.innerHTML = resultsHTML;
+
+        // Show Full Analysis button handler
+        const showFullAnalysisBtn = document.getElementById("showFullAnalysisBtn");
+        const fullAnalysisSection = document.getElementById("fullAnalysisSection");
+
+        if (showFullAnalysisBtn && fullAnalysisSection) {
+          showFullAnalysisBtn.addEventListener("click", () => {
+            const isExpanded = fullAnalysisSection.style.display !== "none";
+
+            if (isExpanded) {
+              // Collapse
+              fullAnalysisSection.style.display = "none";
+              showFullAnalysisBtn.classList.remove("expanded");
+              showFullAnalysisBtn.querySelector("span:first-of-type").textContent = "Show Full Analysis";
+            } else {
+              // Expand
+              fullAnalysisSection.style.display = "block";
+              showFullAnalysisBtn.classList.add("expanded");
+              showFullAnalysisBtn.querySelector("span:first-of-type").textContent = "Hide Full Analysis";
+            }
+          });
+        }
 
         const typeSpans = document.querySelectorAll(".biomarker-type");
 
