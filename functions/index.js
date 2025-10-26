@@ -337,13 +337,14 @@ Example formats:
 exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
     try {
-      const { question } = req.body;
+      const { question, voiceId } = req.body;
 
       if (!question) {
         return res.status(400).json({ error: "Question is required" });
       }
 
       console.log("🎤 Voice question received:", question);
+      console.log("🎙️ Voice ID requested:", voiceId || "default");
 
       // Step 1: Extract disease name from natural language question
       console.log("🧠 Extracting disease name from question...");
@@ -468,10 +469,13 @@ Provide a clear, professional answer that directly addresses the question. Keep 
       // Step 5: Convert summary to speech with ElevenLabs
       console.log("🔊 Converting to speech...");
       const elevenKey = functions.config().elevenlabs.key;
-      const voiceId = functions.config().elevenlabs.voice;
+      // Use voiceId from request, fallback to config if not provided
+      const selectedVoiceId = voiceId || functions.config().elevenlabs.voice;
+
+      console.log("🎙️ Using voice ID:", selectedVoiceId);
 
       const elevenRes = await axios.post(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
         {
           text: summary,
           model_id: "eleven_turbo_v2_5",
