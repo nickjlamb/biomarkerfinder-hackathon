@@ -418,11 +418,18 @@
       progressContainer.classList.remove('show');
     }
 
+    // Check if input looks like a question and extract disease name
+    function isQuestion(text) {
+      const questionWords = ['what', 'which', 'how', 'are', 'is', 'can', 'do', 'does'];
+      const lowerText = text.toLowerCase();
+      return questionWords.some(word => lowerText.startsWith(word));
+    }
+
     // @risg99 - Start of Prefill functionality
     async function searchBiomarkers(prefilledDisease, customQuestion = null) {
       autocompleteList.style.display = 'none';
-      const diseaseName = prefilledDisease || input.value.trim();
-      if (!diseaseName) {
+      let inputText = prefilledDisease || input.value.trim();
+      if (!inputText) {
         output.innerHTML = `
           <div class="empty-state">
             <div class="empty-icon"><i class="fas fa-search"></i></div>
@@ -442,6 +449,30 @@
 
       // Show initial progress
       showProgress(20, 'Looking up disease...');
+
+      let diseaseName = inputText;
+
+      // If input is a question, extract disease name via voice API first
+      if (isQuestion(inputText) && !customQuestion) {
+        customQuestion = inputText;
+        try {
+          const response = await fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/askBiomarkerVoice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: customQuestion,
+              voiceId: selectedVoiceId
+            })
+          });
+          const data = await response.json();
+          if (data.disease) {
+            diseaseName = data.disease;
+            console.log('Extracted disease name:', diseaseName);
+          }
+        } catch (error) {
+          console.error("Error extracting disease name:", error);
+        }
+      }
 
       // Start fetching voice summary in parallel (don't await yet)
       const voiceSummaryPromise = fetchVoiceSummary(diseaseName, customQuestion);
