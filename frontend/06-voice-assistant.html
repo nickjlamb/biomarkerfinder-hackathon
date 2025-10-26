@@ -162,41 +162,6 @@
       line-height: 1.7;
       color: #4a5568;
       margin-bottom: 20px;
-      max-height: 300px;
-      overflow-y: auto;
-      padding-right: 8px;
-    }
-
-    .voice-word {
-      transition: background-color 0.2s ease, color 0.2s ease;
-      border-radius: 3px;
-      padding: 2px 3px;
-      margin: 0 -3px;
-      display: inline-block;
-    }
-
-    .voice-word.highlight {
-      background-color: #e6f2ff;
-      color: #2c5282;
-      font-weight: 500;
-    }
-
-    .voice-response-text::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .voice-response-text::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-
-    .voice-response-text::-webkit-scrollbar-thumb {
-      background: #cbd5e0;
-      border-radius: 3px;
-    }
-
-    .voice-response-text::-webkit-scrollbar-thumb:hover {
-      background: #a0aec0;
     }
 
     .voice-audio-player {
@@ -472,11 +437,6 @@
       .voice-response-text {
         font-size: 14px;
         line-height: 1.6;
-        max-height: 250px;
-      }
-
-      .voice-response-text::-webkit-scrollbar {
-        width: 4px;
       }
 
       .voice-examples {
@@ -552,12 +512,7 @@
       }
 
       .voice-response-text {
-        max-height: 200px;
         font-size: 14px;
-      }
-
-      .voice-response-text::-webkit-scrollbar {
-        width: 3px;
       }
     }
   </style>
@@ -657,8 +612,6 @@
     let isPlaying = false;
     let recognition = null;
     let isListening = false;
-    let highlightIntervals = [];
-    let currentHighlightIndex = -1;
 
     // Initialize Web Speech API
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -742,80 +695,6 @@
       document.getElementById('progressContainer').classList.remove('show');
     }
 
-    function formatTextWithHighlights(text) {
-      // Split text into words, preserving punctuation
-      const words = text.split(/(\s+)/); // Split by whitespace but keep the spaces
-      let wordIndex = 0;
-
-      return words.map(word => {
-        if (word.trim().length === 0) {
-          // It's whitespace, return as-is
-          return word;
-        }
-        // It's a word, wrap it
-        const wrappedWord = `<span class="voice-word" data-index="${wordIndex}">${word}</span>`;
-        wordIndex++;
-        return wrappedWord;
-      }).join('');
-    }
-
-    function startHighlighting(audioDuration) {
-      // Clear any existing highlights
-      stopHighlighting();
-
-      const words = document.querySelectorAll('.voice-word');
-      if (words.length === 0) return;
-
-      // Average speaking rate is ~150 words per minute (2.5 words/second)
-      // But we'll use actual duration to be more accurate
-      const timePerWord = (audioDuration * 1000) / words.length;
-
-      let currentIndex = 0;
-
-      // Highlight first word immediately
-      if (words[0]) {
-        words[0].classList.add('highlight');
-        currentHighlightIndex = 0;
-      }
-
-      // Schedule remaining highlights
-      const interval = setInterval(() => {
-        // Remove previous highlight
-        if (words[currentIndex]) {
-          words[currentIndex].classList.remove('highlight');
-        }
-
-        currentIndex++;
-
-        // Add new highlight
-        if (currentIndex < words.length) {
-          words[currentIndex].classList.add('highlight');
-          currentHighlightIndex = currentIndex;
-
-          // Scroll every 5 words to keep highlighted word visible without too much scrolling
-          if (currentIndex % 5 === 0) {
-            words[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        } else {
-          clearInterval(interval);
-          currentHighlightIndex = -1;
-        }
-      }, timePerWord);
-
-      highlightIntervals.push(interval);
-    }
-
-    function stopHighlighting() {
-      // Clear all intervals
-      highlightIntervals.forEach(interval => clearInterval(interval));
-      highlightIntervals = [];
-      currentHighlightIndex = -1;
-
-      // Remove all highlights
-      const words = document.querySelectorAll('.voice-word');
-      words.forEach(word => word.classList.remove('highlight'));
-    }
-
     function setExample(text) {
       document.getElementById('voiceInput').value = text;
       askQuestion();
@@ -889,7 +768,7 @@
         // Display response
         document.getElementById('responseDisease').textContent = data.disease;
         document.getElementById('responseCount').textContent = `${data.biomarkerCount} biomarkers found`;
-        document.getElementById('responseText').innerHTML = formatTextWithHighlights(data.text);
+        document.getElementById('responseText').textContent = data.text;
 
         // Setup audio
         const audioPlayer = document.getElementById('audioPlayer');
@@ -897,18 +776,6 @@
         const audioUrl = URL.createObjectURL(audioBlob);
         audioPlayer.src = audioUrl;
         currentAudio = audioPlayer;
-
-        // Add event listeners for audio
-        audioPlayer.onloadedmetadata = () => {
-          // Store duration for highlighting
-          audioPlayer.dataset.duration = audioPlayer.duration;
-        };
-
-        audioPlayer.onended = () => {
-          isPlaying = false;
-          document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
-          stopHighlighting();
-        };
 
         // Hide progress and show response after brief delay
         setTimeout(() => {
@@ -945,11 +812,10 @@
         isPlaying = true;
         document.getElementById('playBtn').innerHTML = '<i class="fas fa-pause"></i>';
 
-        // Start highlighting if we have duration
-        const duration = parseFloat(currentAudio.dataset.duration || currentAudio.duration);
-        if (duration) {
-          startHighlighting(duration);
-        }
+        currentAudio.onended = () => {
+          isPlaying = false;
+          document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
+        };
       }
     }
 
@@ -958,7 +824,6 @@
         currentAudio.pause();
         isPlaying = false;
         document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
-        stopHighlighting();
       }
     }
 
