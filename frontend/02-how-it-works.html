@@ -360,19 +360,38 @@
         const ctaBtn = document.getElementById('biomarkerStartBtn');
         if (ctaBtn) {
             ctaBtn.addEventListener('click', function() {
-                // Scroll to the next section (tool section)
-                const howItWorksSection = document.querySelector('.biomarker-how-it-works');
-                const nextSection = howItWorksSection.nextElementSibling;
+                // Try multiple strategies to find the tool section
 
-                if (nextSection) {
-                    nextSection.scrollIntoView({
+                // Strategy 1: Look for the app-wrapper (tool section)
+                let toolSection = document.querySelector('.app-wrapper');
+
+                // Strategy 2: Look for the header with BiomarkerFinder
+                if (!toolSection) {
+                    toolSection = document.querySelector('.header');
+                }
+
+                // Strategy 3: Look for the search container
+                if (!toolSection) {
+                    toolSection = document.querySelector('.search-container');
+                }
+
+                // Strategy 4: Look for the disease input
+                if (!toolSection) {
+                    const diseaseInput = document.getElementById('diseaseInput');
+                    if (diseaseInput) {
+                        toolSection = diseaseInput.closest('.container, .app-wrapper, section, div');
+                    }
+                }
+
+                if (toolSection) {
+                    toolSection.scrollIntoView({
                         behavior: 'smooth',
                         block: 'start'
                     });
                 } else {
-                    // Fallback: scroll down by section height
+                    // Fallback: scroll down by viewport height
                     window.scrollBy({
-                        top: window.innerHeight * 0.8,
+                        top: window.innerHeight * 0.9,
                         behavior: 'smooth'
                     });
                 }
