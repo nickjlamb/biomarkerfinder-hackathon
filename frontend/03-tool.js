@@ -105,6 +105,22 @@
     });
     // @risg99 - End of Prefill functionality call
 
+    // Convert markdown to HTML
+    function markdownToHtml(text) {
+      if (!text) return '';
+
+      // Convert **bold** to <strong>bold</strong>
+      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+      // Convert *italic* to <em>italic</em>
+      text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      // Convert line breaks to <br>
+      text = text.replace(/\n/g, '<br>');
+
+      return text;
+    }
+
     // Fetch and display voice summary
     async function fetchVoiceSummary(diseaseName, customQuestion = null) {
       try {
@@ -128,7 +144,7 @@
 
         // Display voice summary
         voiceSummaryDisease.textContent = `AI Voice Summary for ${data.disease}`;
-        voiceSummaryText.textContent = data.text;
+        voiceSummaryText.innerHTML = markdownToHtml(data.text);
 
         // Convert base64 audio to blob and play
         const audioBlob = base64ToBlob(data.audio, 'audio/mpeg');
