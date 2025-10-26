@@ -256,6 +256,57 @@
       border-color: #667eea;
     }
 
+    .voice-progress-container {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .voice-progress-container.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .voice-progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .voice-progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.5s ease;
+      border-radius: 2px;
+    }
+
+    .voice-progress-steps {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .voice-progress-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .voice-progress-text {
+      font-size: 14px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
     .voice-mic-btn {
       width: 48px;
       height: 48px;
@@ -400,6 +451,14 @@
         font-size: 12px;
         padding: 6px 12px;
       }
+
+      .voice-progress-container {
+        padding: 14px;
+      }
+
+      .voice-progress-text {
+        font-size: 13px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -437,6 +496,19 @@
 
       .voice-ask-btn i {
         margin: 0;
+      }
+
+      .voice-progress-container {
+        padding: 12px;
+      }
+
+      .voice-progress-text {
+        font-size: 12px;
+      }
+
+      .voice-progress-spinner {
+        width: 16px;
+        height: 16px;
       }
     }
   </style>
@@ -486,6 +558,17 @@
         <span class="voice-example-chip" onclick="setExample('What biomarkers are used for diabetes?')">
           Diabetes biomarkers
         </span>
+      </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div id="progressContainer" class="voice-progress-container">
+      <div class="voice-progress-bar">
+        <div id="progressFill" class="voice-progress-fill"></div>
+      </div>
+      <div class="voice-progress-steps">
+        <div class="voice-progress-spinner"></div>
+        <div id="progressText" class="voice-progress-text">Processing your question...</div>
       </div>
     </div>
 
@@ -594,6 +677,20 @@
       document.getElementById('listeningIndicator').classList.remove('show');
     }
 
+    function updateProgress(step, message, percentage) {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+
+      progressContainer.classList.add('show');
+      progressFill.style.width = percentage + '%';
+      progressText.textContent = message;
+    }
+
+    function hideProgress() {
+      document.getElementById('progressContainer').classList.remove('show');
+    }
+
     function setExample(text) {
       document.getElementById('voiceInput').value = text;
       askQuestion();
@@ -622,6 +719,28 @@
       responseContainer.classList.remove('show');
       errorMessage.classList.remove('show');
 
+      // Show progress indicators
+      updateProgress(1, 'Analyzing your question...', 10);
+
+      // Simulate progress updates while waiting for response
+      const progressUpdates = [
+        { delay: 800, message: 'Searching biomarker database...', percentage: 30 },
+        { delay: 2000, message: 'Fetching disease information...', percentage: 50 },
+        { delay: 3500, message: 'Generating personalized answer...', percentage: 70 },
+        { delay: 5000, message: 'Creating voice response...', percentage: 85 }
+      ];
+
+      let progressTimeout;
+      let currentProgressIndex = 0;
+
+      const progressInterval = setInterval(() => {
+        if (currentProgressIndex < progressUpdates.length) {
+          const update = progressUpdates[currentProgressIndex];
+          updateProgress(currentProgressIndex + 2, update.message, update.percentage);
+          currentProgressIndex++;
+        }
+      }, 1500);
+
       try {
         const response = await fetch('https://us-central1-biomarker-matchmaker.cloudfunctions.net/askBiomarkerVoice', {
           method: 'POST',
@@ -631,11 +750,16 @@
           body: JSON.stringify({ question })
         });
 
+        clearInterval(progressInterval);
+
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || 'Failed to get response');
         }
+
+        // Final progress update
+        updateProgress(5, 'Complete! Playing your answer...', 100);
 
         // Display response
         document.getElementById('responseDisease').textContent = data.disease;
@@ -649,13 +773,18 @@
         audioPlayer.src = audioUrl;
         currentAudio = audioPlayer;
 
-        // Show response
-        responseContainer.classList.add('show');
+        // Hide progress and show response after brief delay
+        setTimeout(() => {
+          hideProgress();
+          responseContainer.classList.add('show');
+        }, 500);
 
         // Auto-play audio
-        playAudio();
+        setTimeout(() => playAudio(), 600);
 
       } catch (error) {
+        clearInterval(progressInterval);
+        hideProgress();
         console.error('Error:', error);
         showError(error.message || 'Something went wrong. Please try again.');
       } finally {
