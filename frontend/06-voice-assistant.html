@@ -167,14 +167,15 @@
       padding-right: 8px;
     }
 
-    .voice-sentence {
-      transition: background-color 0.3s ease, color 0.3s ease;
-      border-radius: 4px;
-      padding: 2px 4px;
-      margin: 0 -4px;
+    .voice-word {
+      transition: background-color 0.2s ease, color 0.2s ease;
+      border-radius: 3px;
+      padding: 2px 3px;
+      margin: 0 -3px;
+      display: inline-block;
     }
 
-    .voice-sentence.highlight {
+    .voice-word.highlight {
       background-color: #e6f2ff;
       color: #2c5282;
       font-weight: 500;
@@ -741,57 +742,65 @@
       document.getElementById('progressContainer').classList.remove('show');
     }
 
-    function splitIntoSentences(text) {
-      // Split text into sentences, preserving the delimiters
-      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-      return sentences.map(s => s.trim()).filter(s => s.length > 0);
-    }
-
     function formatTextWithHighlights(text) {
-      const sentences = splitIntoSentences(text);
-      return sentences.map((sentence, index) =>
-        `<span class="voice-sentence" data-index="${index}">${sentence}</span>`
-      ).join(' ');
+      // Split text into words, preserving punctuation
+      const words = text.split(/(\s+)/); // Split by whitespace but keep the spaces
+      let wordIndex = 0;
+
+      return words.map(word => {
+        if (word.trim().length === 0) {
+          // It's whitespace, return as-is
+          return word;
+        }
+        // It's a word, wrap it
+        const wrappedWord = `<span class="voice-word" data-index="${wordIndex}">${word}</span>`;
+        wordIndex++;
+        return wrappedWord;
+      }).join('');
     }
 
     function startHighlighting(audioDuration) {
       // Clear any existing highlights
       stopHighlighting();
 
-      const sentences = document.querySelectorAll('.voice-sentence');
-      if (sentences.length === 0) return;
+      const words = document.querySelectorAll('.voice-word');
+      if (words.length === 0) return;
 
-      // Calculate time per sentence
-      const timePerSentence = (audioDuration * 1000) / sentences.length;
+      // Average speaking rate is ~150 words per minute (2.5 words/second)
+      // But we'll use actual duration to be more accurate
+      const timePerWord = (audioDuration * 1000) / words.length;
 
       let currentIndex = 0;
 
-      // Highlight first sentence immediately
-      if (sentences[0]) {
-        sentences[0].classList.add('highlight');
-        sentences[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight first word immediately
+      if (words[0]) {
+        words[0].classList.add('highlight');
         currentHighlightIndex = 0;
       }
 
       // Schedule remaining highlights
       const interval = setInterval(() => {
         // Remove previous highlight
-        if (sentences[currentIndex]) {
-          sentences[currentIndex].classList.remove('highlight');
+        if (words[currentIndex]) {
+          words[currentIndex].classList.remove('highlight');
         }
 
         currentIndex++;
 
         // Add new highlight
-        if (currentIndex < sentences.length) {
-          sentences[currentIndex].classList.add('highlight');
-          sentences[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (currentIndex < words.length) {
+          words[currentIndex].classList.add('highlight');
           currentHighlightIndex = currentIndex;
+
+          // Scroll every 5 words to keep highlighted word visible without too much scrolling
+          if (currentIndex % 5 === 0) {
+            words[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
         } else {
           clearInterval(interval);
           currentHighlightIndex = -1;
         }
-      }, timePerSentence);
+      }, timePerWord);
 
       highlightIntervals.push(interval);
     }
@@ -803,8 +812,8 @@
       currentHighlightIndex = -1;
 
       // Remove all highlights
-      const sentences = document.querySelectorAll('.voice-sentence');
-      sentences.forEach(sentence => sentence.classList.remove('highlight'));
+      const words = document.querySelectorAll('.voice-word');
+      words.forEach(word => word.classList.remove('highlight'));
     }
 
     function setExample(text) {
