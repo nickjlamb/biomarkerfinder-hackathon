@@ -85,11 +85,9 @@
       });
     }
 
-    // @risg99 - Start of Toggle button and Cytoscape references
-    const toggleBtn = document.getElementById("toggleViewBtn");
-    const cyContainer = document.getElementById("cy");
-    const visualControls = document.getElementById("visualControls");
-    // @risg99 - End of Toggle button and Cytoscape references
+    // @risg99 - Start of Cytoscape references (toggleBtn is added dynamically in results)
+    // Note: toggleBtn, cyContainer, and visualControls are created dynamically in search results
+    // @risg99 - End of Cytoscape references
 
     let diseaseNames = [];
 
@@ -188,7 +186,7 @@
     // Fetch and process the disease list
     async function fetchDiseases() {
       try {
-        const response = await fetch('../data/combined_diseases.json');
+        const response = await fetch('/data/combined_diseases.json');
         const data = await response.json();
         diseaseNames = data.data.search.hits.map(hit => hit.object.name);
       } catch (error) {
@@ -256,23 +254,6 @@
 
     // Click event for search button
     btn.addEventListener("click", searchBiomarkers);
-
-    // @risg99 - Start of Toggle button event listener
-    toggleBtn.addEventListener("click", () => {
-      const isVisual = cyContainer.style.display === "block";
-      if (isVisual) {
-        cyContainer.style.display = "none";
-        output.style.display = "block";
-        toggleBtn.textContent = "Toggle to Visual Mode";
-        visualControls.style.display = "none";
-      } else {
-        cyContainer.style.display = "block";
-        output.style.display = "none";
-        toggleBtn.textContent = "Toggle to List Mode";
-        visualControls.style.display = "flex";
-      }
-    });
-    // @risg99 - End of Toggle button event listener
 
     // @risg99 - Start of function definition to fetch all drugs for a disease using pagination
     async function fetchAllDrugsForDisease(efoId) {
@@ -823,7 +804,30 @@
 
     // @risg99 - Start of building graph function definition
     function buildGraph(data, classifications = [], drugRows = []) {
-      toggleBtn.style.display = "inline-block";
+      const toggleBtn = document.getElementById("toggleViewBtn");
+      const cyContainer = document.getElementById("cy");
+      const visualControls = document.getElementById("visualControls");
+
+      if (toggleBtn) {
+        toggleBtn.style.display = "inline-block";
+
+        // Add toggle button event listener
+        toggleBtn.addEventListener("click", () => {
+          const isVisual = cyContainer.style.display === "block";
+          if (isVisual) {
+            cyContainer.style.display = "none";
+            document.getElementById("output").style.display = "block";
+            toggleBtn.textContent = "Toggle to Visual Mode";
+            visualControls.style.display = "none";
+          } else {
+            cyContainer.style.display = "block";
+            document.getElementById("output").style.display = "none";
+            toggleBtn.textContent = "Toggle to List Mode";
+            visualControls.style.display = "flex";
+          }
+        });
+      }
+
       const nodes = [];
       const edges = [];
 
