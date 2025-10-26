@@ -1,9 +1,673 @@
-<div style="max-width: 800px; margin: 40px auto; font-family: 'Segoe UI', sans-serif; text-align: center;">
-  <div style="display: inline-flex; align-items: center; gap: 10px; background: #eef1ff; border: 1px solid #2036F5; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #2036F5; margin-bottom: 12px;">
-    Open Targets Hackathon 2025 Entry
-  </div>
-  <h2 style="font-size: 32px; color: #2036F5; margin-bottom: 12px;">🧬 BiomarkerFinder</h2>
-  <p style="font-size: 18px; color: #333; margin-bottom: 24px;">
-    Instantly identify key cancer biomarkers, powered by Open Targets and explained by AI.
-  </p>
+<style>
+    .biomarker-header * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .biomarker-header {
+        width: 100%;
+        padding: 80px 48px 64px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 
+                    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .biomarker-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    }
+
+    .biomarker-info-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.3);
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .biomarker-info-button:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.15);
+    }
+
+    .biomarker-info-button i {
+        color: white;
+        font-size: 11px;
+    }
+
+    .biomarker-info-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: biomarkerModalFadeIn 0.3s ease;
+    }
+
+    .biomarker-info-modal.active {
+        display: flex;
+    }
+
+    @keyframes biomarkerModalFadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .biomarker-info-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: biomarkerModalSlideUp 0.4s ease;
+    }
+
+    @keyframes biomarkerModalSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .biomarker-info-header {
+        padding: 32px 32px 24px;
+        border-bottom: 2px solid #e9ecef;
+        position: relative;
+    }
+
+    .biomarker-modal-title {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+    }
+
+    .biomarker-modal-subtitle {
+        font-size: 15px;
+        color: #718096;
+        line-height: 1.5;
+    }
+
+    .biomarker-info-close {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        width: 36px;
+        height: 36px;
+        background: #f8f9fa;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 20px;
+        color: #718096;
+    }
+
+    .biomarker-info-close:hover {
+        background: #e9ecef;
+        color: #2d3748;
+        transform: rotate(90deg);
+    }
+
+    .biomarker-info-body {
+        padding: 32px;
+    }
+
+    .biomarker-info-section {
+        margin-bottom: 32px;
+    }
+
+    .biomarker-info-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .biomarker-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .biomarker-section-title i {
+        color: #667eea;
+        font-size: 20px;
+    }
+
+    .biomarker-info-text {
+        font-size: 15px;
+        color: #718096;
+        line-height: 1.7;
+        margin-bottom: 12px;
+    }
+
+    .biomarker-team-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .biomarker-team-member {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .biomarker-team-member:hover {
+        transform: translateX(4px);
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .biomarker-team-link-icon {
+        margin-left: auto;
+        color: #667eea;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .biomarker-team-member:hover .biomarker-team-link-icon {
+        opacity: 1;
+    }
+
+    .biomarker-team-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .biomarker-team-icon i {
+        color: white;
+        font-size: 18px;
+    }
+
+    .biomarker-team-info {
+        flex: 1;
+        text-align: left;
+    }
+
+    .biomarker-team-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 2px;
+    }
+
+    .biomarker-team-role {
+        font-size: 13px;
+        color: #718096;
+    }
+
+    .biomarker-link-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        margin-top: 16px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+    }
+
+    .biomarker-link-button:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        border-color: transparent;
+    }
+
+    .biomarker-award-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #ffd166 0%, #f093fb 100%);
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-top: 12px;
+        box-shadow: 0 4px 12px rgba(255, 209, 102, 0.3);
+    }
+
+    .biomarker-header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 28px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        opacity: 0;
+        animation: biomarkerFadeInDown 0.6s ease forwards;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .biomarker-badge-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #fff;
+        border-radius: 50%;
+        animation: biomarkerPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes biomarkerPulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(0.85);
+        }
+    }
+
+    .biomarker-header-title {
+        font-size: 64px;
+        font-weight: 800;
+        margin-bottom: 20px;
+        line-height: 1.1;
+        opacity: 0;
+        animation: biomarkerFadeInDown 0.6s ease forwards 0.1s;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -1px;
+    }
+
+    .biomarker-header-accent {
+        width: 80px;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 999px;
+        margin: 24px auto 28px;
+        opacity: 0;
+        animation: biomarkerFadeInUp 0.6s ease forwards 0.2s;
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .biomarker-header-tagline {
+        font-size: 22px;
+        color: #2d3748;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        opacity: 0;
+        animation: biomarkerFadeInUp 0.6s ease forwards 0.25s;
+        font-weight: 600;
+    }
+
+    .biomarker-header-subtitle {
+        font-size: 16px;
+        color: #718096;
+        font-weight: 400;
+        line-height: 1.6;
+        opacity: 0;
+        animation: biomarkerFadeInUp 0.6s ease forwards 0.3s;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    @keyframes biomarkerFadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes biomarkerFadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Decorative element */
+    .biomarker-header::after {
+        content: '';
+        position: absolute;
+        bottom: -100px;
+        right: -100px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .biomarker-header {
+            padding: 60px 32px 48px;
+            border-radius: 20px;
+        }
+
+        .biomarker-info-button {
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+        }
+
+        .biomarker-info-button i {
+            font-size: 16px;
+        }
+
+        .biomarker-info-header {
+            padding: 24px 24px 20px;
+        }
+
+        .biomarker-modal-title {
+            font-size: 24px;
+        }
+
+        .biomarker-info-body {
+            padding: 24px;
+        }
+
+        .biomarker-info-section {
+            margin-bottom: 24px;
+        }
+
+        .biomarker-header-title {
+            font-size: 48px;
+        }
+
+        .biomarker-header-tagline {
+            font-size: 19px;
+        }
+
+        .biomarker-header-subtitle {
+            font-size: 15px;
+        }
+
+        .biomarker-header-badge {
+            font-size: 10px;
+            padding: 7px 14px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .biomarker-header {
+            padding: 48px 24px 40px;
+            border-radius: 16px;
+        }
+
+        .biomarker-info-content {
+            border-radius: 16px;
+        }
+
+        .biomarker-info-header,
+        .biomarker-info-body {
+            padding: 20px;
+        }
+
+        .biomarker-modal-title {
+            font-size: 22px;
+        }
+
+        .biomarker-header-title {
+            font-size: 36px;
+            letter-spacing: -0.5px;
+        }
+
+        .biomarker-header-badge {
+            font-size: 9px;
+            padding: 6px 12px;
+            gap: 6px;
+        }
+
+        .biomarker-badge-dot {
+            width: 6px;
+            height: 6px;
+        }
+
+        .biomarker-header-accent {
+            width: 60px;
+            height: 3px;
+        }
+
+        .biomarker-header-tagline {
+            font-size: 17px;
+        }
+
+        .biomarker-header-subtitle {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<div class="biomarker-header">
+    <div class="biomarker-header-badge">
+        <span class="biomarker-badge-dot"></span>
+        Open Targets Hackathon 2025 Winner
+        <button class="biomarker-info-button" id="biomarkerInfoBtn">
+            <i class="fas fa-info"></i>
+        </button>
+    </div>
+    
+    <h1 class="biomarker-header-title">BiomarkerFinder</h1>
+    <div class="biomarker-header-accent"></div>
+    <p class="biomarker-header-tagline">Discover biomarkers faster. Understand them better.</p>
+    <p class="biomarker-header-subtitle">AI-powered insights into complex biomarker data, explained in plain language.</p>
 </div>
+
+<div class="biomarker-info-modal" id="biomarkerInfoModal">
+    <div class="biomarker-info-content">
+        <div class="biomarker-info-header">
+            <h2 class="biomarker-modal-title">About BiomarkerFinder</h2>
+            <p class="biomarker-modal-subtitle">Audience Choice Award Winner</p>
+            <button class="biomarker-info-close" id="biomarkerInfoClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="biomarker-info-body">
+            <div class="biomarker-info-section">
+                <h3 class="biomarker-section-title">
+                    <i class="fas fa-trophy"></i>
+                    The Achievement
+                </h3>
+                <div class="biomarker-award-badge">
+                    <i class="fas fa-award"></i>
+                    Audience Choice Award
+                </div>
+                <p class="biomarker-info-text">
+                    BiomarkerFinder won the Audience Choice Award at the Open Targets Hackathon 2025 – an AI tool built to make biomarker insights explainable for everyone.
+                </p>
+            </div>
+
+            <div class="biomarker-info-section">
+                <h3 class="biomarker-section-title">
+                    <i class="fas fa-lightbulb"></i>
+                    Our Mission
+                </h3>
+                <p class="biomarker-info-text">
+                    Our mission was to make biomarker data more explainable and accessible to clinicians, researchers, and students by combining Open Targets data with AI-powered plain language explanations.
+                </p>
+            </div>
+
+            <div class="biomarker-info-section">
+                <h3 class="biomarker-section-title">
+                    <i class="fas fa-users"></i>
+                    The Team
+                </h3>
+                <div class="biomarker-team-list">
+                    <a href="https://www.linkedin.com/in/medcopywriter/" target="_blank" class="biomarker-team-member">
+                        <div class="biomarker-team-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="biomarker-team-info">
+                            <div class="biomarker-team-name">Nick Lamb PhD, CMPP</div>
+                            <div class="biomarker-team-role">Project Lead</div>
+                        </div>
+                        <i class="fas fa-external-link-alt biomarker-team-link-icon"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/alireza-hekmati/" target="_blank" class="biomarker-team-member">
+                        <div class="biomarker-team-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="biomarker-team-info">
+                            <div class="biomarker-team-name">Alireza Hekmati</div>
+                            <div class="biomarker-team-role">Team Member</div>
+                        </div>
+                        <i class="fas fa-external-link-alt biomarker-team-link-icon"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/kristiangurashi/" target="_blank" class="biomarker-team-member">
+                        <div class="biomarker-team-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="biomarker-team-info">
+                            <div class="biomarker-team-name">Kristian Gurashi PhD</div>
+                            <div class="biomarker-team-role">Team Member</div>
+                        </div>
+                        <i class="fas fa-external-link-alt biomarker-team-link-icon"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/mmalinda/" target="_blank" class="biomarker-team-member">
+                        <div class="biomarker-team-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="biomarker-team-info">
+                            <div class="biomarker-team-name">Mutanu Malinda</div>
+                            <div class="biomarker-team-role">Team Member</div>
+                        </div>
+                        <i class="fas fa-external-link-alt biomarker-team-link-icon"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/rishika-g/" target="_blank" class="biomarker-team-member">
+                        <div class="biomarker-team-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="biomarker-team-info">
+                            <div class="biomarker-team-name">Rishika Gupta</div>
+                            <div class="biomarker-team-role">Team Member</div>
+                        </div>
+                        <i class="fas fa-external-link-alt biomarker-team-link-icon"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="biomarker-info-section">
+                <h3 class="biomarker-section-title">
+                    <i class="fas fa-link"></i>
+                    Learn More
+                </h3>
+                <a href="https://www.opentargets.org/hackathon" target="_blank" class="biomarker-link-button">
+                    <i class="fas fa-external-link-alt"></i>
+                    Visit Open Targets Hackathon
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const infoBtn = document.getElementById('biomarkerInfoBtn');
+        const infoModal = document.getElementById('biomarkerInfoModal');
+        const closeBtn = document.getElementById('biomarkerInfoClose');
+
+        infoBtn.addEventListener('click', function() {
+            infoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeBtn.addEventListener('click', function() {
+            infoModal.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        infoModal.addEventListener('click', function(e) {
+            if (e.target === infoModal) {
+                infoModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && infoModal.classList.contains('active')) {
+                infoModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    })();
+</script>
