@@ -149,12 +149,6 @@
       font-size: 18px;
       font-weight: 700;
       color: #2d3748;
-      margin-bottom: 4px;
-    }
-
-    .voice-response-count {
-      font-size: 14px;
-      color: #718096;
     }
 
     .voice-response-text {
@@ -430,10 +424,6 @@
         font-size: 16px;
       }
 
-      .voice-response-count {
-        font-size: 13px;
-      }
-
       .voice-response-text {
         font-size: 14px;
         line-height: 1.6;
@@ -584,7 +574,6 @@
         </div>
         <div class="voice-response-meta">
           <div id="responseDisease" class="voice-response-disease"></div>
-          <div id="responseCount" class="voice-response-count"></div>
         </div>
       </div>
 
@@ -767,7 +756,6 @@
 
         // Display response
         document.getElementById('responseDisease').textContent = data.disease;
-        document.getElementById('responseCount').textContent = `${data.biomarkerCount} biomarkers found`;
         document.getElementById('responseText').textContent = data.text;
 
         // Setup audio
