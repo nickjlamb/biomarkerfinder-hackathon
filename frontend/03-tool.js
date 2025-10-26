@@ -188,9 +188,10 @@
         const chip = document.createElement('div');
         chip.className = 'related-question-chip';
         chip.textContent = question;
+        chip.dataset.disease = diseaseName; // Store disease name for search
         chip.addEventListener('click', () => {
-          input.value = question;
-          searchBiomarkers(question);
+          input.value = chip.dataset.disease; // Use disease name, not full question
+          searchBiomarkers(chip.dataset.disease);
         });
         relatedQuestionsChips.appendChild(chip);
       });
