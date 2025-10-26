@@ -186,7 +186,7 @@
     // Fetch and process the disease list
     async function fetchDiseases() {
       try {
-        const response = await fetch('https://biomarker-matchmaker.web.app/data/combined_diseases.json');
+        const response = await fetch('https://gist.githubusercontent.com/nickjlamb/ead9c82885eb568ed5b8868c5faa0e29/raw/combined_diseases.json');
         const data = await response.json();
         diseaseNames = data.data.search.hits.map(hit => hit.object.name);
       } catch (error) {
