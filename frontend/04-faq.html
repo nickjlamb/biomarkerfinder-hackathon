@@ -84,9 +84,6 @@
     .biomarker-faq-item:nth-child(7) { animation-delay: 0.4s; }
     .biomarker-faq-item:nth-child(8) { animation-delay: 0.45s; }
     .biomarker-faq-item:nth-child(9) { animation-delay: 0.5s; }
-    .biomarker-faq-item:nth-child(10) { animation-delay: 0.55s; }
-    .biomarker-faq-item:nth-child(11) { animation-delay: 0.6s; }
-    .biomarker-faq-item:nth-child(12) { animation-delay: 0.65s; }
 
     .biomarker-faq-item:hover {
         border-color: #667eea;
@@ -331,16 +328,6 @@
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>How are the biomarker summaries generated?</span>
-                    <div class="biomarker-faq-icon"></div>
-                </button>
-                <div class="biomarker-faq-answer">
-                    We use AI (GPT-4) to generate concise, easy-to-understand and plain-language summaries for each biomarker. These summaries are based on scientific evidence from Open Targets and tailored to each specific disease.
-                </div>
-            </div>
-
-            <div class="biomarker-faq-item">
-                <button class="biomarker-faq-question">
                     <span>What does the "Score" mean?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
@@ -365,23 +352,11 @@
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>What's the "Toggle for Visual Mode" for?</span>
+                    <span>What is the network visualization?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
-                    It is a feature that allows users to switch to a graphical representation of the data. The graph view lets you visually explore how diseases are connected to biomarkers and drugs. Each node is color-coded:
-                    <ul>
-                        <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #4361ee;"></span>Disease</span></li>
-                        <li>Biomarkers:
-                            <ul>
-                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ffd166;"></span>Prognostic</span></li>
-                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #06d6a0;"></span>Predictive</span></li>
-                                <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ef476f;"></span>Diagnostic</span></li>
-                            </ul>
-                        </li>
-                        <li><span class="biomarker-color-legend"><span class="biomarker-color-dot" style="background-color: #ff69b4;"></span>Drugs</span></li>
-                    </ul>
-                    This mode helps users spot patterns, relationships, and potential therapeutic links more easily.
+                    After clicking "Show Full Analysis," you can toggle to a network graph that visualizes how diseases connect to biomarkers and drugs. Each node is color-coded to show biomarker types (prognostic, predictive, diagnostic) and drug connections, helping you spot patterns and therapeutic relationships more easily.
                 </div>
             </div>
 
@@ -397,11 +372,11 @@
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>What is the Voice Assistant feature?</span>
+                    <span>How do the voice features work?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
-                    The Voice Assistant lets you ask questions about biomarkers using your voice or text. Simply type or speak your question (e.g., "What are the biomarkers for lung cancer?"), and you'll receive a spoken answer powered by ElevenLabs AI. You can choose from 4 different voices and copy the transcript for later use.
+                    You can type or speak your questions using the microphone button in the search bar. After searching, you'll receive an AI-powered voice summary that explains the biomarker findings in spoken form. You can choose from 4 different AI voices (Rachel, Adam, Bella, Callum), copy the transcript, and optionally expand to see detailed analysis.
                 </div>
             </div>
 
@@ -417,31 +392,11 @@
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>How often is the biomarker data updated?</span>
-                    <div class="biomarker-faq-icon"></div>
-                </button>
-                <div class="biomarker-faq-answer">
-                    The data is fetched in real time from the Open Targets Platform API, which is regularly updated as new scientific evidence becomes available. This ensures you're always seeing the latest available insights.
-                </div>
-            </div>
-
-            <div class="biomarker-faq-item">
-                <button class="biomarker-faq-question">
                     <span>Can I use this tool for clinical decisions?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
                     No. This tool is for educational and exploratory purposes only. It is not intended to guide clinical practice.
-                </div>
-            </div>
-
-            <div class="biomarker-faq-item">
-                <button class="biomarker-faq-question">
-                    <span>How can I suggest a new feature or report a bug?</span>
-                    <div class="biomarker-faq-icon"></div>
-                </button>
-                <div class="biomarker-faq-answer">
-                    We would love your feedback! You can reach out to the development team through the contact form. Feature suggestions, bug reports, and general feedback are all welcome.
                 </div>
             </div>
         </div>
