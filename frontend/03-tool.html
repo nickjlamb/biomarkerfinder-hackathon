@@ -213,6 +213,57 @@
       }
     }
 
+    .progress-container {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .progress-container.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+      width: 0%;
+      transition: width 0.5s ease;
+      border-radius: 2px;
+    }
+
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #4361ee;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
     .recent-searches {
       display: flex;
       gap: 10px;
@@ -529,6 +580,34 @@
       .app-title {
         font-size: 22px;
       }
+
+      .progress-container {
+        padding: 16px;
+      }
+
+      .progress-text {
+        font-size: 13px;
+      }
+
+      .progress-spinner {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .progress-container {
+        padding: 12px;
+      }
+
+      .progress-text {
+        font-size: 12px;
+      }
+
+      .progress-spinner {
+        width: 16px;
+        height: 16px;
+      }
     }
 
     /* Animations */
@@ -732,6 +811,17 @@
           <div class="recent-search-tag">Breast cancer</div>
           <div class="recent-search-tag">Colorectal cancer</div>
           <div class="recent-search-tag">Acute myeloid leukemia</div>
+        </div>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div id="progressContainer" class="progress-container">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div class="progress-steps">
+          <div class="progress-spinner"></div>
+          <div id="progressText" class="progress-text">Processing your request...</div>
         </div>
       </div>
 
@@ -999,6 +1089,22 @@
     }
     // @risg99 - End of function definition to fetch all drugs for a disease using pagination
 
+    // Progress indicator helper functions
+    function showProgress(percentage, message) {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+
+      progressContainer.classList.add('show');
+      progressFill.style.width = percentage + '%';
+      progressText.textContent = message;
+    }
+
+    function hideProgress() {
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.classList.remove('show');
+    }
+
     // @risg99 - Start of Prefill functionality
     async function searchBiomarkers(prefilledDisease) {
       autocompleteList.style.display = 'none';
@@ -1019,6 +1125,9 @@
       loadingSpinner.style.display = "inline";
       output.innerHTML = "";
 
+      // Show initial progress
+      showProgress(20, 'Looking up disease...');
+
       try {
         // @risg99 - Start of call to fetchDiseaseEfoId
         const efoId = await fetchDiseaseEfoId(diseaseName);
@@ -1033,9 +1142,13 @@
           `;
           buttonText.style.display = "inline";
           loadingSpinner.style.display = "none";
+          hideProgress();
           return;
         }
         // @risg99 - End of call to fetchDiseaseEfoId
+
+        // Update progress
+        showProgress(40, 'Fetching biomarkers from Open Targets...');
 
         // Fetch biomarkers from API
         const response = await fetch("https://us-central1-biomarker-matchmaker.cloudfunctions.net/getBiomarkers", {
@@ -1055,8 +1168,12 @@
           `;
           buttonText.style.display = "inline";
           loadingSpinner.style.display = "none";
+          hideProgress();
           return;
         }
+
+        // Update progress
+        showProgress(60, 'Analyzing biomarker data...');
 
         // @risg99 - Start of function definition & calls to match drugs to biomarkers
         function matchDrugsToBiomarkers(drugs, biomarkers) {
@@ -1102,6 +1219,9 @@
         console.log("💊 Matched drugs:", matchedDrugs);
         // @risg99 - End of function definition & calls to match drugs to biomarkers
 
+        // Update progress
+        showProgress(80, 'Generating AI explanations...');
+
         // Create card for each biomarker
         const biomarkerList = data.biomarkers.map(b => `
           <div class="biomarker-card fade-in">
@@ -1144,6 +1264,9 @@
           </div>
         `;
         // @risg99 - End of Export buttons added
+
+        // Final progress update
+        showProgress(100, 'Complete!');
 
         output.innerHTML = resultsHTML;
 
@@ -1344,6 +1467,9 @@
       } finally {
         buttonText.style.display = "inline";
         loadingSpinner.style.display = "none";
+
+        // Hide progress after a brief delay to show "Complete!" message
+        setTimeout(() => hideProgress(), 800);
       }
     }
 
