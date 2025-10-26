@@ -9,6 +9,7 @@
     const searchIcon = document.querySelector(".input-icon");
     const micBtn = document.getElementById("micBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const soundWave = document.getElementById("soundWave");
     const voiceSelector = document.getElementById("voiceSelector");
     const voiceSummaryContainer = document.getElementById("voiceSummaryContainer");
     const voiceSummaryDisease = document.getElementById("voiceSummaryDisease");
@@ -33,6 +34,7 @@
         const transcript = event.results[0][0].transcript;
         input.value = transcript;
         micBtn.classList.remove('listening');
+        if (soundWave) soundWave.style.display = 'none';
         // Automatically trigger search with voice input
         searchBiomarkers(transcript);
       };
@@ -40,6 +42,7 @@
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         micBtn.classList.remove('listening');
+        if (soundWave) soundWave.style.display = 'none';
 
         let errorMessage = 'Voice input error. ';
         if (event.error === 'no-speech') {
@@ -54,6 +57,7 @@
 
       recognition.onend = () => {
         micBtn.classList.remove('listening');
+        if (soundWave) soundWave.style.display = 'none';
       };
     }
 
@@ -65,14 +69,17 @@
             // Stop listening if already active
             recognition.stop();
             micBtn.classList.remove('listening');
+            if (soundWave) soundWave.style.display = 'none';
           } else {
             // Start listening
             micBtn.classList.add('listening');
+            if (soundWave) soundWave.style.display = 'flex';
             try {
               recognition.start();
             } catch (error) {
               console.error('Error starting recognition:', error);
               micBtn.classList.remove('listening');
+              if (soundWave) soundWave.style.display = 'none';
             }
           }
         } else {
