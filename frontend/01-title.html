@@ -848,21 +848,28 @@
         const heroCta = document.getElementById('biomarkerHeroCta');
         if (heroCta) {
             heroCta.addEventListener('click', function() {
-                // Try multiple strategies to find the tool section
+                // Try multiple strategies to find the top of the tool section
+                // Prioritize finding the outermost container to include the BiomarkerFinder heading
                 let toolSection = document.querySelector('.app-wrapper');
 
+                // Try to find the header which contains the BiomarkerFinder title
+                if (!toolSection) {
+                    const headerWithTitle = document.querySelector('.header .app-title');
+                    if (headerWithTitle) {
+                        toolSection = headerWithTitle.closest('.app-wrapper, .header');
+                    }
+                }
+
+                // Try the header element directly
                 if (!toolSection) {
                     toolSection = document.querySelector('.header');
                 }
 
-                if (!toolSection) {
-                    toolSection = document.querySelector('.search-container');
-                }
-
+                // Last resort: find via input and climb to app-wrapper
                 if (!toolSection) {
                     const diseaseInput = document.getElementById('diseaseInput');
                     if (diseaseInput) {
-                        toolSection = diseaseInput.closest('.container, .app-wrapper, section, div');
+                        toolSection = diseaseInput.closest('.app-wrapper');
                     }
                 }
 
