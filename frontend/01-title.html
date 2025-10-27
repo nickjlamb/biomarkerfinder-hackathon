@@ -443,6 +443,16 @@
         margin: 0 auto 32px;
     }
 
+    .biomarker-hero-cta-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        opacity: 0;
+        animation: biomarkerFadeInUp 0.6s ease forwards 0.4s;
+    }
+
     .biomarker-hero-cta {
         display: inline-flex;
         align-items: center;
@@ -458,8 +468,6 @@
         transition: all 0.3s ease;
         box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         text-decoration: none;
-        opacity: 0;
-        animation: biomarkerFadeInUp 0.6s ease forwards 0.4s;
     }
 
     .biomarker-hero-cta:hover {
@@ -477,6 +485,41 @@
     }
 
     .biomarker-hero-cta:hover i {
+        transform: translateX(4px);
+    }
+
+    .biomarker-hero-cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 48px;
+        background: transparent;
+        color: #667eea;
+        font-size: 18px;
+        font-weight: 700;
+        border: 2px solid #667eea;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .biomarker-hero-cta-secondary:hover {
+        background: rgba(102, 126, 234, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+
+    .biomarker-hero-cta-secondary:active {
+        transform: translateY(-2px);
+    }
+
+    .biomarker-hero-cta-secondary i {
+        font-size: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .biomarker-hero-cta-secondary:hover i {
         transform: translateX(4px);
     }
 
@@ -566,7 +609,8 @@
             padding: 7px 14px;
         }
 
-        .biomarker-hero-cta {
+        .biomarker-hero-cta,
+        .biomarker-hero-cta-secondary {
             font-size: 17px;
             padding: 18px 40px;
         }
@@ -620,7 +664,8 @@
             font-size: 14px;
         }
 
-        .biomarker-hero-cta {
+        .biomarker-hero-cta,
+        .biomarker-hero-cta-secondary {
             font-size: 16px;
             padding: 16px 32px;
         }
@@ -649,10 +694,16 @@
     <div class="biomarker-header-accent"></div>
     <p class="biomarker-header-tagline">Discover biomarkers faster. Understand them better.</p>
     <p class="biomarker-header-subtitle">AI-powered insights into complex biomarker data, explained in plain language.</p>
-    <button class="biomarker-hero-cta" id="biomarkerHeroCta">
-        Try It Now
-        <i class="fas fa-arrow-right"></i>
-    </button>
+    <div class="biomarker-hero-cta-container">
+        <button class="biomarker-hero-cta" id="biomarkerHeroCta">
+            Try It Now
+            <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="biomarker-hero-cta-secondary" id="biomarkerLearnMoreCta">
+            How It Works
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
 </div>
 
 <div class="biomarker-info-modal" id="biomarkerInfoModal">
@@ -824,6 +875,36 @@
                     // Fallback: scroll down by viewport height
                     window.scrollBy({
                         top: window.innerHeight * 0.9,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
+
+        // Secondary CTA scroll to How It Works
+        const learnMoreCta = document.getElementById('biomarkerLearnMoreCta');
+        if (learnMoreCta) {
+            learnMoreCta.addEventListener('click', function() {
+                // Try multiple strategies to find the How It Works section
+                let howItWorksSection = document.querySelector('.biomarker-how-it-works');
+
+                if (!howItWorksSection) {
+                    howItWorksSection = document.querySelector('.biomarker-how-section-header');
+                }
+
+                if (!howItWorksSection) {
+                    howItWorksSection = document.querySelector('.biomarker-steps-container');
+                }
+
+                if (howItWorksSection) {
+                    howItWorksSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    // Fallback: scroll down by viewport height
+                    window.scrollBy({
+                        top: window.innerHeight * 0.5,
                         behavior: 'smooth'
                     });
                 }
