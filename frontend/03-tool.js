@@ -629,8 +629,9 @@
               <span class="score-value">${parseFloat(b.score).toFixed(2)}</span>
             </div>
             <p class="biomarker-summary">${b.summary}</p>
-            <a href="${b.openTargetsLink}" target="_blank" class="biomarker-link">
-              View on Open Targets
+            <a href="${b.openTargetsLink}" target="_blank" rel="noopener noreferrer" class="biomarker-link">
+              Learn More on Open Targets
+              <i class="fas fa-external-link-alt"></i>
             </a>
           </div>
         `).join("");
