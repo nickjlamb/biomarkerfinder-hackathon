@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cross-Disease Biomarker Visualizer</title>
-  <!-- FontAwesome for icons -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <!-- Vis.js Network CSS -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
-</head>
-<body>
+<!-- FontAwesome for icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<!-- Vis.js Network CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
 <!-- Full-width wrapper -->
 <div style="background-color: #ffffff; padding: 50px 60px;">
 
@@ -424,53 +416,72 @@
       }
     }
 
-    async function fetchTargetsForDisease(efoId) {
-      const query = `
-        query {
-          disease(efoId: "${efoId}") {
-            associatedTargets(page: {index: 0, size: 10}) {
-              rows {
-                target {
-                  id
-                  approvedSymbol
-                }
-              }
-            }
-          }
-        }`;
+    async function otQuery(query, variables) {
       const response = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, variables }),
       });
-      const json = await response.json();
+      return response.json();
+    }
+
+    // Some IDs in the saved disease list have since been retired by Open Targets
+    // (e.g. EFO_0003060 -> MONDO_0005233), so fall back to a name search.
+    async function fetchTargetsForDisease(efoId, name) {
+      const targetsQuery = `
+        query Targets($id: String!) {
+          disease(efoId: $id) {
+            associatedTargets(page: {index: 0, size: 10}) {
+              rows { target { id approvedSymbol } }
+            }
+          }
+        }`;
+      let json = await otQuery(targetsQuery, { id: efoId });
+      if (!json?.data?.disease && name) {
+        const search = await otQuery(`query S($q: String!) { search(queryString: $q, entityNames: ["disease"]) { hits { id name } } }`, { q: name });
+        const hits = search?.data?.search?.hits || [];
+        const hit = hits.find(h => h.name.toLowerCase() === name.toLowerCase()) || hits[0];
+        if (hit) json = await otQuery(targetsQuery, { id: hit.id });
+      }
+      if (!json?.data?.disease) throw new Error(`Open Targets has no record for "${name || efoId}"`);
       return json.data.disease.associatedTargets.rows.map(row => row.target);
     }
 
+    // Open Targets replaced Target.knownDrugs with drugAndClinicalCandidates (2026).
+    // Show approved drugs only (incl. Phase 4 post-marketing), salt forms merged, max 25 per gene.
     async function fetchDrugsForTarget(targetId) {
         const query = `
             query {
                 target(ensemblId: "${targetId}") {
-                    knownDrugs {
+                    drugAndClinicalCandidates {
                         rows {
-                            drug {
-                                id
-                                name
-                            }
+                            maxClinicalStage
+                            drug { id name }
                         }
                     }
                 }
             }`;
-        const response = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query }),
-        });
-        const json = await response.json();
-        if (json.data.target && json.data.target.knownDrugs) {
-            return json.data.target.knownDrugs.rows.map(row => row.drug);
+        try {
+            const response = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query }),
+            });
+            const json = await response.json();
+            const rows = json?.data?.target?.drugAndClinicalCandidates?.rows;
+            if (!rows) { console.error("Drug data unavailable for", targetId, json?.errors); return []; }
+            const SALT = /\s+(HYDROCHLORIDE|DIHYDROCHLORIDE|MESYLATE|DIMESYLATE|MALEATE|DIMALEATE|SUCCINATE|TOSYLATE|DITOSYLATE|SULFATE|SODIUM|POTASSIUM|CITRATE|FUMARATE|TARTRATE|PHOSPHATE|BESYLATE|ACETATE|MALATE|HYDRATE|MONOHYDRATE|CALCIUM)\b.*$/i;
+            const seen = new Map();
+            rows.forEach(r => {
+                if (!r.drug || !["APPROVAL", "PHASE_4"].includes(r.maxClinicalStage)) return; // Phase 4 = approved, post-marketing; withdrawn drugs excluded
+                const canon = r.drug.name.replace(SALT, "").trim().toUpperCase();
+                if (!seen.has(canon)) seen.set(canon, { id: "drug_" + canon.replace(/[^A-Z0-9]/g, "_"), name: canon.charAt(0) + canon.slice(1).toLowerCase() });
+            });
+            return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 25);
+        } catch (err) {
+            console.error("Drug data unavailable for", targetId, err.message);
+            return [];
         }
-        return [];
     }
 
     function renderGraph(nodes, edges) {
@@ -554,7 +565,7 @@
 
         try {
             // Step 1: Fetch all targets for the selected diseases
-            const targetPromises = diseaseInfo.map(d => fetchTargetsForDisease(d.id));
+            const targetPromises = diseaseInfo.map(d => fetchTargetsForDisease(d.id, d.name));
             const results = await Promise.all(targetPromises);
 
             const nodes = new Map();
@@ -614,7 +625,7 @@
 
         } catch (error) {
             console.error("Failed to fetch or render graph:", error);
-            graphContainer.textContent = 'An error occurred. Please check the console for details.';
+            graphContainer.textContent = 'Could not load data from Open Targets: ' + error.message;
         }
     });
 
@@ -759,5 +770,3 @@
     fetchDiseases();
   });
 </script>
-</body>
-</html>

@@ -1,137 +1,105 @@
-const functions = require("firebase-functions");
+const functions = require("firebase-functions/v1");
+const { defineSecret } = require("firebase-functions/params");
 const axios = require("axios");
-const cors = require('cors')({ origin: true });
-
-const openaiKey = functions.config().openai.key;
-
 const OpenAI = require("openai");
-const openai = new OpenAI({
-  apiKey: openaiKey,
-});
 
-// Function to classify a biomarker
-exports.classifyBiomarker = functions.https.onRequest((req, res) => {
-  // Log the complete request for debugging
-  console.log("🔎 Request method:", req.method);
-  console.log("🔎 Request headers:", JSON.stringify(req.headers, null, 2));
-  // Handle preflight OPTIONS request for CORS
-  if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    res.status(204).send('');
-    return;
+// Secrets live in Google Secret Manager (set with: firebase functions:secrets:set NAME)
+const OPENAI_KEY = defineSecret("OPENAI_KEY");
+const ELEVENLABS_KEY = defineSecret("ELEVENLABS_KEY");
+
+// Runtime limits: cap concurrent instances so a flood can't scale the bill
+const RUNTIME = { secrets: [OPENAI_KEY, ELEVENLABS_KEY], maxInstances: 3, timeoutSeconds: 60, memory: "256MB" };
+
+// Only these sites may call the functions
+const ALLOWED_ORIGINS = [
+  "https://pharmatools.ai",
+  "https://www.pharmatools.ai",
+  "https://biomarker-matchmaker.web.app",
+  "https://biomarker-matchmaker.firebaseapp.com",
+];
+
+// The four voices offered in the UI (Rachel, Adam, Bella, Callum)
+const DEFAULT_VOICE = "21m00Tcm4TlvDq8ikWAM";
+const ALLOWED_VOICES = new Set([
+  "21m00Tcm4TlvDq8ikWAM",
+  "pNInz6obpgDQGcFmaJgB",
+  "EXAVITQu4vr4xnSDxMaL",
+  "N2lVS1w4EtoT3dr4eOWO",
+]);
+
+const MAX_DISEASE_CHARS = 100;
+const MAX_QUESTION_CHARS = 300;
+
+// Simple per-IP rate limit (per instance): 10 requests per minute
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60 * 1000;
+const hits = new Map();
+function rateLimited(req) {
+  const ip = (req.headers["x-forwarded-for"] || req.ip || "unknown").toString().split(",")[0].trim();
+  const now = Date.now();
+  const recent = (hits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) hits.clear();
+  return recent.length > RATE_LIMIT;
+}
+
+// CORS allowlist + method + rate-limit gate. Returns true if the request was handled (rejected or preflight).
+function gate(req, res) {
+  const origin = req.headers.origin;
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+    res.status(403).json({ error: "Forbidden" });
+    return true;
   }
-  return cors(req, res, async () => {
-    console.log("📩 Request body:", JSON.stringify(req.body, null, 2));
-    
-    // Extract parameters from various possible request formats (body or query)
-    let biomarkerName = req.body.biomarkerName || req.body.biomarker || req.body.name || 
-                        req.query.biomarkerName || req.query.biomarker || req.query.name || "";
-                        
-    let diseaseName = req.body.diseaseName || req.body.disease || 
-                      req.query.diseaseName || req.query.disease || "";
-    
-    // Also try to parse JSON if it's sent as a string
-    if (typeof req.body === 'string') {
-      try {
-        const parsedBody = JSON.parse(req.body);
-        biomarkerName = biomarkerName || parsedBody.biomarkerName || parsedBody.biomarker || parsedBody.name || "";
-        diseaseName = diseaseName || parsedBody.diseaseName || parsedBody.disease || "";
-      } catch (e) {
-        console.log("📝 Body is a string but not valid JSON");
-      }
-    }
-    
-    // Log the extracted parameters
-    console.log(`📋 Extracted biomarkerName: "${biomarkerName}", diseaseName: "${diseaseName}"`);
+  res.set("Access-Control-Allow-Origin", origin);
+  res.set("Vary", "Origin");
+  res.set("Access-Control-Allow-Methods", "POST");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return true;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return true;
+  }
+  if (rateLimited(req)) {
+    res.status(429).json({ error: "Too many requests. Please wait a minute and try again." });
+    return true;
+  }
+  return false;
+}
 
-    if (!biomarkerName || !diseaseName) {
-      return res.status(400).json({ 
-        error: "Both biomarkerName and diseaseName are required.",
-        receivedParams: req.body
-      });
-    }
+// Evidence tags come from Open Targets data, not from the LLM.
+// Order = priority used for the network-graph colour.
+const EVIDENCE_TAGS = [
+  { key: "drug_response", label: "Drug-response biomarker", test: (dt, ds) => (ds.cancer_biomarkers || 0) > 0 },
+  { key: "known_drug", label: "Clinical drug target", test: (dt) => (dt.clinical || dt.known_drug || 0) > 0 }, // OT renamed known_drug -> clinical
+  { key: "somatic_mutation", label: "Somatic mutation", test: (dt) => (dt.somatic_mutation || 0) > 0 },
+  { key: "genetic_association", label: "Genetic association", test: (dt) => (dt.genetic_association || 0) > 0 },
+];
+function evidenceFor(row) {
+  const dt = Object.fromEntries((row.datatypeScores || []).map((x) => [x.id, x.score]));
+  const ds = Object.fromEntries((row.datasourceScores || []).map((x) => [x.id, x.score]));
+  return EVIDENCE_TAGS.filter((t) => t.test(dt, ds)).map(({ key, label }) => ({ key, label }));
+}
 
-    try {
-      console.log(`🔍 Classifying biomarker: ${biomarkerName} for disease: ${diseaseName}`);
-      
-      const categoryPrompt = `In the context of ${diseaseName}, is the biomarker ${biomarkerName} primarily diagnostic, prognostic, predictive, or pharmacodynamic? 
+let openaiClient;
+function getOpenAI() {
+  if (!openaiClient) openaiClient = new OpenAI({ apiKey: OPENAI_KEY.value() });
+  return openaiClient;
+}
 
-IMPORTANT: Start your response with just one of these words: "Diagnostic", "Prognostic", "Predictive", "Pharmacodynamic", or "Unknown". Then continue with a brief explanation.
-
-Example formats:
-"Diagnostic: This biomarker helps diagnose the condition because..."
-"Prognostic: This biomarker helps predict disease progression because..."
-"Unknown: There is insufficient evidence to classify this biomarker..."`;
-
-      const categoryRes = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: categoryPrompt }],
-        temperature: 0,
-        max_tokens: 150
-      });
-
-      const fullResponse = categoryRes.choices[0].message.content.trim();
-      
-      // Match for known category types
-      const categoryTypes = ["diagnostic", "prognostic", "predictive", "pharmacodynamic", "unknown"];
-      
-      // First check if the response starts with a category word
-      const firstWord = fullResponse.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
-      
-      let category = "unknown";
-      let explanation = "";
-      
-      if (categoryTypes.includes(firstWord)) {
-        // If the first word is a category, use it
-        category = firstWord;
-        explanation = fullResponse.substring(firstWord.length).trim().replace(/^[:\-–\s]+/, '');
-      } else {
-        // Try to find any category word in the text
-        const foundCategory = categoryTypes.find(type => 
-          fullResponse.toLowerCase().includes(type)
-        );
-        
-        if (foundCategory) {
-          category = foundCategory;
-          explanation = fullResponse;
-        } else {
-          category = "unknown";
-          explanation = fullResponse;
-        }
-      }
-      
-      console.log(`📊 Raw category response: "${fullResponse}"`);
-      console.log(`✅ ${biomarkerName} categorized as ${category}`);
-
-      const result = {
-        biomarker: biomarkerName,
-        disease: diseaseName,
-        type: category,
-        category: category, // Include both for compatibility
-        explanation: explanation
-      };
-      
-      console.log(`📦 Returning classification:`, JSON.stringify(result, null, 2));
-      
-      res.status(200).json(result);
-    } catch (error) {
-      console.error("🔥 Error classifying biomarker:", error.message);
-      res.status(500).json({ 
-        error: "Failed to classify biomarker.",
-        details: error.message 
-      });
-    }
-  });
-});
-
-exports.getBiomarkers = functions.https.onRequest((req, res) => {
-  return cors(req, res, async () => {
-    const diseaseName = req.body.disease || "";
+exports.getBiomarkers = functions.runWith(RUNTIME).https.onRequest((req, res) => {
+  if (gate(req, res)) return;
+  return (async () => {
+    const diseaseName = typeof req.body?.disease === "string" ? req.body.disease.trim() : "";
 
     if (!diseaseName) {
       return res.status(400).json({ error: "Disease name is required." });
+    }
+    if (diseaseName.length > MAX_DISEASE_CHARS) {
+      return res.status(400).json({ error: `Disease name must be ${MAX_DISEASE_CHARS} characters or fewer.` });
     }
 
     try {
@@ -161,7 +129,6 @@ exports.getBiomarkers = functions.https.onRequest((req, res) => {
         }
       );
 
-      console.log("📊 Search results:", efoRes.data);
 
       const match = efoRes.data.data.search.hits.find(
         (item) => item.entity === "disease"
@@ -192,6 +159,8 @@ exports.getBiomarkers = functions.https.onRequest((req, res) => {
                   approvedName
                 }
                 score
+                datatypeScores { id score }
+                datasourceScores { id score }
               }
             }
           }
@@ -210,7 +179,6 @@ exports.getBiomarkers = functions.https.onRequest((req, res) => {
         return res.status(500).json({ error: "GraphQL biomarker query failed." });
       }
 
-      console.log("📥 Biomarker response:", JSON.stringify(otRes.data, null, 2));
 
       const rows = otRes.data.data.disease?.associatedTargets?.rows || [];
 
@@ -227,97 +195,43 @@ exports.getBiomarkers = functions.https.onRequest((req, res) => {
           const geneName = item.target.approvedName || biomarkerName;
           const ensemblId = item.target.id;
 
-          const summaryPrompt = `Explain the role of the biomarker ${geneName} in the context of ${diseaseName} in 1-2 sentences. Make it accessible to non-experts.`;
+          const evidence = evidenceFor(item);
+          const evidenceText = evidence.length
+            ? evidence.map((e) => e.label.toLowerCase()).join(", ")
+            : "literature and other indirect evidence";
 
-          const categoryPrompt = `In the context of ${diseaseName}, is the biomarker ${geneName} primarily diagnostic, prognostic, predictive, or pharmacodynamic? 
-
-IMPORTANT: Start your response with just one of these words: "Diagnostic", "Prognostic", "Predictive", "Pharmacodynamic", or "Unknown". Then continue with a brief explanation.
-
-Example formats:
-"Diagnostic: This biomarker helps diagnose the condition because..."
-"Prognostic: This biomarker helps predict disease progression because..."
-"Unknown: There is insufficient evidence to classify this biomarker..."`;
+          const summaryPrompt = `In 1-2 sentences for a non-expert, explain how the gene ${geneName} (${biomarkerName}) relates to ${diseaseName}.
+Open Targets links this gene to the disease through: ${evidenceText}.
+Base the explanation on that evidence. Do not claim clinical use (e.g. diagnostic, prognostic or treatment selection) unless it is well established, and do not invent statistics.`;
 
           let summary = "";
-          let category = "unknown";
-          let explanation = "";
-
           try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            const [summaryRes, categoryRes] = await Promise.all([
-              openai.chat.completions.create({
+            const summaryRes = await getOpenAI().chat.completions.create(
+              {
                 model: "gpt-4o-mini",
                 messages: [{ role: "user", content: summaryPrompt }],
-                temperature: 0.7,
-                max_tokens: 200
-              }, { signal: controller.signal }),
-
-              openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: [{ role: "user", content: categoryPrompt }],
-                temperature: 0,
-                max_tokens: 100
-              }, { signal: controller.signal }),
-            ]);
-
-            clearTimeout(timeoutId);
-
+                temperature: 0.2,
+                max_tokens: 200,
+              },
+              { timeout: 10000 }
+            );
             summary = summaryRes.choices[0].message.content.trim();
-
-            // Get the full response
-            const fullResponse = categoryRes.choices[0].message.content.trim();
-            
-            // Match for known category types
-            const categoryTypes = ["diagnostic", "prognostic", "predictive", "pharmacodynamic", "unknown"];
-            
-            // First check if the response starts with a category word
-            const firstWord = fullResponse.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
-            
-            if (categoryTypes.includes(firstWord)) {
-              // If the first word is a category, use it
-              category = firstWord;
-              explanation = fullResponse.substring(firstWord.length).trim().replace(/^[:\-–\s]+/, '');
-            } else {
-              // Try to find any category word in the text
-              const foundCategory = categoryTypes.find(type => 
-                fullResponse.toLowerCase().includes(type)
-              );
-              
-              if (foundCategory) {
-                category = foundCategory;
-                explanation = fullResponse;
-              } else {
-                category = "unknown";
-                explanation = fullResponse;
-              }
-            }
-            
-            console.log(`📊 Raw category response for ${biomarkerName}: "${fullResponse}"`);
-
-            console.log(`✅ ${biomarkerName} categorized as ${category}`);
           } catch (error) {
-            console.error(`❌ Error for ${biomarkerName}:`, error.message);
-            summary = summary || `${geneName} is a biomarker associated with ${diseaseName}.`;
-            category = "unknown";
-            explanation = `Categorization could not be determined: ${error.message}`;
-            
-            console.log(`⚠️ Falling back to default values for ${biomarkerName} due to error`);
+            console.error(`❌ Summary error for ${biomarkerName}:`, error.message);
+            summary = `${geneName} is associated with ${diseaseName} in Open Targets.`;
           }
 
           const result = {
             name: biomarkerName,
             geneName: geneName,
             summary: summary,
-            category: category,
-            explanation: explanation,
-            openTargetsLink: `https://platform.opentargets.org/target/${ensemblId}`,
+            summaryIsAI: true,
+            evidence: evidence,
+            type: evidence.length ? evidence[0].key : "other", // primary evidence, used for graph colour
+            openTargetsLink: `https://platform.opentargets.org/evidence/${ensemblId}/${efoId}`,
             score: item.score.toFixed(2),
-            type: category // Add type field that's equivalent to category
           };
           
-          console.log(`📦 Returning biomarker data for ${biomarkerName}:`, JSON.stringify(result, null, 2));
           
           return result;
         })
@@ -330,17 +244,25 @@ Example formats:
       console.error("🔥 Top-level error:", error.message);
       res.status(500).json({ error: "Failed to fetch biomarker data." });
     }
-  });
+  })();
 });
 
 // Voice Assistant Function
-exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
-  return cors(req, res, async () => {
+exports.askBiomarkerVoice = functions.runWith(RUNTIME).https.onRequest((req, res) => {
+  if (gate(req, res)) return;
+  return (async () => {
     try {
-      const { question, voiceId } = req.body;
+      const question = typeof req.body?.question === "string" ? req.body.question.trim() : "";
+      const voiceId = req.body?.voiceId;
 
       if (!question) {
         return res.status(400).json({ error: "Question is required" });
+      }
+      if (question.length > MAX_QUESTION_CHARS) {
+        return res.status(400).json({ error: `Question must be ${MAX_QUESTION_CHARS} characters or fewer.` });
+      }
+      if (voiceId && !ALLOWED_VOICES.has(voiceId)) {
+        return res.status(400).json({ error: "Unknown voice." });
       }
 
       console.log("🎤 Voice question received:", question);
@@ -350,7 +272,7 @@ exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
       console.log("🧠 Extracting disease name from question...");
       const extractPrompt = `Extract only the disease or condition name from this question: "${question}". Return ONLY the disease name, nothing else. If no disease is mentioned, return "unknown".`;
 
-      const extractRes = await openai.chat.completions.create({
+      const extractRes = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: extractPrompt }],
         temperature: 0,
@@ -420,6 +342,8 @@ exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
                   approvedName
                 }
                 score
+                datatypeScores { id score }
+                datasourceScores { id score }
               }
             }
           }
@@ -447,30 +371,33 @@ exports.askBiomarkerVoice = functions.https.onRequest((req, res) => {
       // Step 4: Create a summary using OpenAI
       console.log("📝 Generating AI summary...");
       const biomarkerList = biomarkers
-        .map(b => `${b.target.approvedSymbol} (${b.target.approvedName}, score: ${b.score.toFixed(2)})`)
+        .map(b => {
+          const ev = evidenceFor(b).map((e) => e.label.toLowerCase()).join(", ") || "other evidence";
+          return `${b.target.approvedSymbol} (${b.target.approvedName}; association score ${b.score.toFixed(2)}; Open Targets evidence: ${ev})`;
+        })
         .join(", ");
 
       const summaryPrompt = `You are a medical AI assistant. Answer this question concisely in 2-3 sentences for a medical professional: "${question}"
 
-Context: The top biomarkers for ${matchedDiseaseName} are: ${biomarkerList}
+Context: The genes most strongly associated with ${matchedDiseaseName} in Open Targets are: ${biomarkerList}.
+Base your answer only on this evidence. Do not state or imply which genes are, or are not, clinically established biomarkers, and do not invent statistics.
 
 Provide a clear, professional answer that directly addresses the question. Keep it under 100 words.`;
 
-      const summaryRes = await openai.chat.completions.create({
+      const summaryRes = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: summaryPrompt }],
-        temperature: 0.7,
+        temperature: 0.2,
         max_tokens: 200
       });
 
       const summary = summaryRes.choices[0].message.content.trim();
-      console.log("✅ Summary generated:", summary);
 
       // Step 5: Convert summary to speech with ElevenLabs
       console.log("🔊 Converting to speech...");
-      const elevenKey = functions.config().elevenlabs.key;
-      // Use voiceId from request, fallback to config if not provided
-      const selectedVoiceId = voiceId || functions.config().elevenlabs.voice;
+      const elevenKey = ELEVENLABS_KEY.value();
+      // Use voiceId from request (validated above), fallback to the default voice
+      const selectedVoiceId = voiceId || DEFAULT_VOICE;
 
       console.log("🎙️ Using voice ID:", selectedVoiceId);
 
@@ -510,12 +437,10 @@ Provide a clear, professional answer that directly addresses the question. Keep 
     } catch (error) {
       console.error("🔥 Voice assistant error:", error.message);
       if (error.response) {
-        console.error("📋 Error details:", error.response.data);
       }
       res.status(500).json({
-        error: "Failed to process voice request",
-        details: error.message
+        error: "Failed to process voice request"
       });
     }
-  });
+  })();
 });

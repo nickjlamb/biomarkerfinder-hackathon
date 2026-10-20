@@ -295,9 +295,41 @@
             padding: 0 16px 18px 16px;
         }
     }
+
+    .bf-story {
+        max-width: 1200px;
+        margin: 0 auto 56px;
+        background: #ffffff;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 32px 36px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .bf-story h3 {
+        font-size: 24px;
+        font-weight: 800;
+        color: #2d3748;
+        margin-bottom: 12px;
+    }
+    .bf-story p { font-size: 15px; line-height: 1.7; color: #4a5568; margin-bottom: 14px; }
+    .bf-story ul { margin: 0 0 14px 20px; padding: 0; }
+    .bf-story li { font-size: 15px; line-height: 1.7; color: #4a5568; margin-bottom: 8px; }
+    .bf-story b { color: #2d3748; }
+    @media (max-width: 480px) { .bf-story { padding: 24px 20px; } .bf-story h3 { font-size: 21px; } }
 </style>
 
 <div class="biomarker-faq-wrapper">
+    <section class="bf-story" aria-labelledby="bf-story-title">
+        <h3 id="bf-story-title">Built at a hackathon, hardened afterwards</h3>
+        <p>BiomarkerFinder began as an entry to the Open Targets Hackathon 2025, where it won the Audience Choice award. In October 2026 it was revisited and checked against its own evidence:</p>
+        <ul>
+            <li><b>AI-guessed labels removed.</b> The first version asked a language model to call each gene diagnostic, prognostic or predictive. Checked against the evidence, those labels were inconsistent (four mismatch-repair genes in colorectal cancer received two different labels), so they were replaced with evidence tags read directly from Open Targets.</li>
+            <li><b>Score relabelled.</b> The 0 to 1 score is Open Targets' association score, not a measure of biomarker utility, and now says so.</li>
+            <li><b>Drug graph repaired.</b> An Open Targets schema change had silently emptied the drug network. It now uses the current API and shows approved drugs.</li>
+            <li><b>Backend locked down.</b> Calls are restricted to this site, rate-limited and capped, with API keys held in a secrets manager.</li>
+        </ul>
+        <p>The AI still writes the plain-language explanations, but it is given the Open Targets evidence and told not to classify.</p>
+    </section>
     <div class="biomarker-faq-container">
         <div class="biomarker-faq-header">
             <div class="biomarker-faq-badge">Got Questions?</div>
@@ -328,25 +360,38 @@
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>What does the "Score" mean?</span>
+                    <span>What does the "Open Targets association score" mean?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
-                    The score (0 to 1) comes from Open Targets and reflects how strongly a biomarker is linked to a disease. A higher score means there's more evidence supporting that connection.
+                    The score (0 to 1) is Open Targets' overall association score. It combines evidence from genetics, somatic mutations, drugs in clinical development, pathways, literature and animal models into one measure of how strongly a gene is linked to a disease. A higher score means more and stronger evidence. It is not a measure of how useful a gene is as a clinical biomarker.
                 </div>
             </div>
 
             <div class="biomarker-faq-item">
                 <button class="biomarker-faq-question">
-                    <span>What do "predictive," "prognostic," and "diagnostic" mean?</span>
+                    <span>What do the evidence tags mean?</span>
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
+                    Each gene is tagged with the types of evidence Open Targets holds for its link to the disease:
                     <ul>
-                        <li><b>Predictive</b> biomarkers indicate how likely a patient is to respond to a particular treatment.</li>
-                        <li><b>Prognostic</b> biomarkers provide information about the likely course or outcome of a disease, regardless of therapy.</li>
-                        <li><b>Diagnostic</b> biomarkers confirm or help identify the presence of a specific disease or condition.</li>
+                        <li><b>Drug-response biomarker</b>: the gene is listed in the Cancer Biomarkers database as affecting response to a drug.</li>
+                        <li><b>Clinical drug target</b>: a drug acting on this gene has reached clinical trials or approval for the disease.</li>
+                        <li><b>Somatic mutation</b>: mutations in the gene are found in tumour tissue for this disease.</li>
+                        <li><b>Genetic association</b>: inherited variants in the gene are linked to the disease.</li>
                     </ul>
+                    The tags come directly from Open Targets data, not from AI. They show what kind of evidence exists, not whether a gene is used clinically as a diagnostic, prognostic or predictive test.
+                </div>
+            </div>
+
+            <div class="biomarker-faq-item">
+                <button class="biomarker-faq-question">
+                    <span>Which parts are AI-generated?</span>
+                    <div class="biomarker-faq-icon"></div>
+                </button>
+                <div class="biomarker-faq-answer">
+                    The gene list, scores and evidence tags come straight from Open Targets. The short explanation on each card and the voice summary are written by an AI model (OpenAI GPT-4o mini), which is given the Open Targets evidence for each gene and told not to overstate clinical use. AI explanations can still contain errors, so follow the "See the evidence on Open Targets" link to check the underlying data.
                 </div>
             </div>
 
@@ -356,7 +401,7 @@
                     <div class="biomarker-faq-icon"></div>
                 </button>
                 <div class="biomarker-faq-answer">
-                    After clicking "Show Full Analysis," you can toggle to a network graph that visualizes how diseases connect to biomarkers and drugs. Each node is color-coded to show biomarker types (prognostic, predictive, diagnostic) and drug connections, helping you spot patterns and therapeutic relationships more easily.
+                    After clicking "Show Full Analysis," you can toggle to a network graph showing how the disease connects to its top associated genes and to drugs acting on them. Each gene is coloured by its strongest type of Open Targets evidence (drug-response biomarker, clinical drug target, somatic mutation or genetic association).
                 </div>
             </div>
 

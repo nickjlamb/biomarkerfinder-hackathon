@@ -1,3 +1,22 @@
+// --- Evidence-tag styles and helpers (injected so no stylesheet change is needed) ---
+(function () {
+  if (document.getElementById("bf-evidence-styles")) return;
+  const st = document.createElement("style");
+  st.id = "bf-evidence-styles";
+  st.textContent = `
+    .evidence-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; position:relative; z-index:1; }
+    .evidence-chip { font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#eef2ff; color:#2b2d42; }
+    .evidence-chip.ev-drug_response { background:#d8f8ee; color:#05674f; }
+    .evidence-chip.ev-known_drug { background:#fff3d1; color:#7a5800; }
+    .evidence-chip.ev-somatic_mutation { background:#fde2e8; color:#9b1c3a; }
+    .evidence-chip.ev-genetic_association { background:#e1f2fa; color:#185a74; }
+    .ai-label { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#6c757d; margin:12px 0 4px; }
+    .result-note { font-size:14px; color:#555; margin-top:6px; max-width:760px; }
+  `;
+  document.head.appendChild(st);
+})();
+function escapeAttr(v) { return String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+
     // DOM element references
     const input = document.getElementById("diseaseInput");
     const output = document.getElementById("output");
@@ -350,52 +369,49 @@
     btn.addEventListener("click", searchBiomarkers);
 
     // @risg99 - Start of function definition to fetch all drugs for a disease using pagination
+    // Open Targets replaced Disease.knownDrugs with drugAndClinicalCandidates (2026).
+    // Returns one row per drug-target pair: { drug:{id,name}, target:{id,approvedSymbol}, stage }
+    // Throws on API/schema errors so the UI can say "Drug data unavailable" instead of failing silently.
     async function fetchAllDrugsForDisease(efoId) {
-      let allDrugs = [];
-      let cursor = null;
-
-      do {
-        const query = `
-          query getDrugsForBiomarkerDisease($efoId: String!, $cursor: String) {
-            disease(efoId: $efoId) {
-              knownDrugs(size: 1000, cursor: $cursor) {
-                cursor
-                rows {
-                  drug {
-                    id
-                    name
-                  }
-                  target {
-                    approvedSymbol
-                    id
-                  }
-                  status
-                  phase
+      const query = `
+        query DrugsForDisease($efoId: String!) {
+          disease(efoId: $efoId) {
+            drugAndClinicalCandidates {
+              rows {
+                maxClinicalStage
+                drug {
+                  id
+                  name
+                  mechanismsOfAction { rows { targets { id approvedSymbol } } }
                 }
               }
             }
           }
-        `;
-
-        const response = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query,
-            variables: { efoId, cursor },
-          }),
-        });
-
-        const result = await response.json();
-        const drugsPage = result?.data?.disease?.knownDrugs;
-        if (!drugsPage) break;
-
-        allDrugs.push(...drugsPage.rows);
-        cursor = drugsPage.cursor;
-
-      } while (cursor);
-
-      return allDrugs;
+        }
+      `;
+      const response = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, variables: { efoId } }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.errors || !result?.data?.disease) {
+        throw new Error("Open Targets drug query failed: " + (result.errors?.[0]?.message || response.status));
+      }
+      const rows = result.data.disease.drugAndClinicalCandidates?.rows || [];
+      const out = [];
+      rows.forEach((r) => {
+        if (!r.drug) return;
+        const seenTargets = new Set();
+        (r.drug.mechanismsOfAction?.rows || []).forEach((m) =>
+          (m.targets || []).forEach((t) => {
+            if (!t || seenTargets.has(t.id)) return;
+            seenTargets.add(t.id);
+            out.push({ drug: { id: r.drug.id, name: r.drug.name }, target: t, stage: r.maxClinicalStage });
+          })
+        );
+      });
+      return out;
     }
 
     async function fetchDiseaseEfoId(diseaseName) {
@@ -561,48 +577,56 @@
         // Update progress
         showProgress(60, 'Analyzing biomarker data...');
 
-        // @risg99 - Start of function definition & calls to match drugs to biomarkers
-        function matchDrugsToBiomarkers(drugs, biomarkers) {
-          const matched = [];
+        // Select drugs for the network graph: approved drugs per gene (salt forms merged),
+        // falling back to the most advanced trial drugs; max 6 per gene.
+        const STAGE_RANK = { APPROVAL: 9, PREAPPROVAL: 8, PHASE_3: 7, PHASE_2_3: 6, PHASE_2: 5, PHASE_1_2: 4, PHASE_1: 3, EARLY_PHASE_1: 2, UNKNOWN: 0 };
+        const STAGE_LABEL = { APPROVAL: "Approved for this disease", PREAPPROVAL: "Pre-approval", PHASE_3: "Highest stage: Phase 3", PHASE_2_3: "Highest stage: Phase 2/3", PHASE_2: "Highest stage: Phase 2", PHASE_1_2: "Highest stage: Phase 1/2", PHASE_1: "Highest stage: Phase 1", EARLY_PHASE_1: "Highest stage: Early Phase 1", UNKNOWN: "Stage unknown" };
+        const SALT = /\s+(HYDROCHLORIDE|DIHYDROCHLORIDE|MESYLATE|DIMESYLATE|MALEATE|DIMALEATE|SUCCINATE|TOSYLATE|DITOSYLATE|SULFATE|SODIUM|POTASSIUM|CITRATE|FUMARATE|TARTRATE|PHOSPHATE|BESYLATE|ACETATE|MALATE|HYDRATE|MONOHYDRATE|CALCIUM)\b.*$/i;
+        const MAX_DRUGS_PER_GENE = 12;
 
-          drugs.forEach((row, i) => {
-            const { drug, target, status, phase } = row;
-            if (!drug || !target) return;
-
-            const matchIndex = biomarkers.findIndex(b =>
-              b.geneName?.toLowerCase() === target.approvedSymbol?.toLowerCase() ||
-              (b.openTargetsLink && b.openTargetsLink.includes(target.id))
-            );
-
-            if (matchIndex === -1) return;
-
-            matched.push({
-              drug,
-              target,
-              matchedBiomarkerIndex: matchIndex,
-              status,
-              phase
+        function selectDrugsForGraph(drugRows, biomarkers) {
+          const geneIndex = (t) => biomarkers.findIndex(b =>
+            b.name?.toUpperCase() === t.approvedSymbol?.toUpperCase() ||
+            (b.openTargetsLink && b.openTargetsLink.includes(`/${t.id}/`))
+          );
+          // per gene: best stage per canonical drug name
+          const perGene = biomarkers.map(() => new Map());
+          drugRows.forEach(({ drug, target, stage }) => {
+            const gi = geneIndex(target);
+            if (gi === -1) return;
+            const canon = drug.name.replace(SALT, "").trim().toUpperCase();
+            const rank = STAGE_RANK[stage] ?? 0;
+            const prev = perGene[gi].get(canon);
+            if (!prev || rank > prev.rank) perGene[gi].set(canon, { canon, rank, stage });
+          });
+          const drugs = new Map(); // canon -> { id, name, stage, rank, genes:Set }
+          const more = {};
+          perGene.forEach((m, gi) => {
+            const all = [...m.values()].sort((a, b) => b.rank - a.rank || a.canon.localeCompare(b.canon));
+            if (!all.length) return;
+            const approved = all.filter(d => d.stage === "APPROVAL");
+            const pool = approved.length ? approved : all.filter(d => d.rank === all[0].rank);
+            const shown = pool.slice(0, MAX_DRUGS_PER_GENE);
+            if (pool.length > shown.length) more[gi] = pool.length - shown.length;
+            shown.forEach(d => {
+              const ex = drugs.get(d.canon) || { id: "drug_" + d.canon.replace(/[^A-Z0-9]/g, "_"), name: d.canon.charAt(0) + d.canon.slice(1).toLowerCase(), stage: d.stage, rank: d.rank, genes: new Set() };
+              if (d.rank > ex.rank) { ex.stage = d.stage; ex.rank = d.rank; }
+              ex.genes.add(gi);
+              drugs.set(d.canon, ex);
             });
           });
-
-          return matched;
+          return { drugs: [...drugs.values()].map(d => ({ ...d, genes: [...d.genes], stageLabel: STAGE_LABEL[d.stage] || d.stage })), more };
         }
 
-        const allDrugs = await fetchAllDrugsForDisease(efoId);
-
-        // Remove duplicate drug-target pairs
-        const uniqueDrugs = [];
-        const seen = new Set();
-
-        for (let row of allDrugs) {
-          const key = `${row.drug.id}_${row.target.id}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            uniqueDrugs.push(row);
-          }
+        let matchedDrugs = { drugs: [], more: {}, error: null };
+        try {
+          const allDrugs = await fetchAllDrugsForDisease(efoId);
+          matchedDrugs = { ...selectDrugsForGraph(allDrugs, data.biomarkers), error: null };
+        } catch (err) {
+          console.error("💊 Drug data unavailable:", err.message);
+          matchedDrugs.error = err.message;
         }
-        const matchedDrugs = matchDrugsToBiomarkers(uniqueDrugs, data.biomarkers);
-        console.log("💊 Matched drugs:", matchedDrugs);
+        console.log("💊 Drugs for graph:", matchedDrugs);
         // @risg99 - End of function definition & calls to match drugs to biomarkers
 
         // Update progress
@@ -612,15 +636,16 @@
         const biomarkerList = data.biomarkers.map(b => `
           <div class="biomarker-card fade-in">
             <div class="card-blob"></div>
-            <div class="biomarker-type">
-              Classifying...
+            <div class="evidence-tags" data-evidence="${escapeAttr((b.evidence || []).map(e => e.label).join("; ") || "Other evidence")}">
+              ${(b.evidence && b.evidence.length ? b.evidence : [{ key: "other", label: "Other evidence" }])
+                .map(e => `<span class="evidence-chip ev-${e.key}">${e.label}</span>`).join("")}
             </div>
             <h3 class="biomarker-name">${b.name}</h3>
             <div class="biomarker-gene">${b.geneName}</div>
             <div class="biomarker-score">
-              <span class="score-label">Score
+              <span class="score-label">Open Targets association score
                 <span class="tooltip-icon">?
-                  <span class="tooltip">This score (0–1) reflects how strongly the biomarker is associated with the disease, based on evidence from Open Targets. A higher score means a stronger association.</span>
+                  <span class="tooltip">Open Targets' overall evidence (0–1) that this gene is linked to the disease, combining genetics, somatic mutations, known drugs, literature and more. It is not a measure of clinical biomarker utility.</span>
                 </span>
               </span>
               <div class="score-bar-container">
@@ -628,9 +653,10 @@
               </div>
               <span class="score-value">${parseFloat(b.score).toFixed(2)}</span>
             </div>
+            <p class="ai-label">AI-generated explanation</p>
             <p class="biomarker-summary">${b.summary}</p>
             <a href="${b.openTargetsLink}" target="_blank" rel="noopener noreferrer" class="biomarker-link">
-              Learn More on Open Targets
+              See the evidence on Open Targets
               <i class="fas fa-external-link-alt"></i>
             </a>
           </div>
@@ -641,11 +667,12 @@
           <button id="showFullAnalysisBtn" class="show-full-analysis-btn">
             <i class="fas fa-chevron-down"></i>
             <span>Show Full Analysis</span>
-            <span class="full-analysis-subtitle">View detailed biomarker cards, scores, and network visualization</span>
+            <span class="full-analysis-subtitle">View gene cards, Open Targets evidence and network visualization</span>
           </button>
           <div id="fullAnalysisSection" class="full-analysis-section" style="display: none;">
             <div class="result-header fade-in">
-              <h2 class="result-title">Top biomarkers for ${data.disease}</h2>
+              <h2 class="result-title">Top associated genes for ${data.disease}</h2>
+              <p class="result-note">The 5 genes most strongly associated with ${data.disease} in Open Targets. Some are established clinical biomarkers; others are research targets. Evidence tags come from Open Targets; explanations are AI-generated.</p>
             </div>
             <div class="export-buttons">
               <button id="exportCSV" class="export-btn"><i class="fas fa-file-csv"></i> Export to CSV</button>
@@ -678,13 +705,16 @@
                   <span class="legend-color disease"></span> Disease
                 </span>
                 <span class="legend-item">
-                  <span class="legend-color predictive"></span> Biomarker - Predictive
+                  <span class="legend-color" style="background:#06d6a0"></span> Gene: drug-response biomarker
                 </span>
                 <span class="legend-item">
-                  <span class="legend-color prognostic"></span> Biomarker - Prognostic
+                  <span class="legend-color" style="background:#ffd166"></span> Gene: clinical drug target
                 </span>
                 <span class="legend-item">
-                  <span class="legend-color diagnostic"></span> Biomarker - Diagnostic
+                  <span class="legend-color" style="background:#ef476f"></span> Gene: somatic mutation
+                </span>
+                <span class="legend-item">
+                  <span class="legend-color" style="background:#8ecae6"></span> Gene: genetic association
                 </span>
                 <span class="legend-item">
                   <span class="legend-color drug"></span> Drug
@@ -726,29 +756,8 @@
           });
         }
 
-        const typeSpans = document.querySelectorAll(".biomarker-type");
-
-        // Use classification data already returned from backend (no additional API calls needed)
-        const classifications = data.biomarkers.map((biomarker, i) => {
-          const type = biomarker.type || biomarker.category || "unknown";
-          const typeText = type.toLowerCase();
-
-          let typeClass = "";
-          if (typeText.includes("predictive")) {
-            typeClass = "predictive";
-          } else if (typeText.includes("prognostic")) {
-            typeClass = "prognostic";
-          } else if (typeText.includes("diagnostic")) {
-            typeClass = "diagnostic";
-          }
-
-          // Update UI with classification
-          const formattedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-          typeSpans[i].textContent = formattedType;
-          if (typeClass) typeSpans[i].classList.add(typeClass);
-
-          return typeClass || "unknown";
-        });
+        // Primary evidence type (from Open Targets) drives the graph colour
+        const classifications = data.biomarkers.map(b => b.type || "other");
 
         // Build graph with biomarkers, disease, and drugs
         buildGraph(data, classifications, matchedDrugs);
@@ -766,7 +775,7 @@
             csvRows.push(`Evidence Source: Open Targets`);
             csvRows.push("");
 
-            const headers = ["#", "Biomarker", "Gene", "Score", "Type", "Summary", "Evidence Source"];
+            const headers = ["#", "Gene symbol", "Gene name", "Open Targets association score", "Evidence (Open Targets)", "AI-generated summary", "Evidence link"];
             csvRows.push(headers.join(","));
 
             function quoteCSV(value) {
@@ -779,7 +788,7 @@
               const name = card.querySelector(".biomarker-name").textContent.trim();
               const gene = card.querySelector(".biomarker-gene").textContent.trim();
               const score = card.querySelector(".score-value").textContent.trim();
-              const type = card.querySelector(".biomarker-type").textContent.trim();
+              const type = card.querySelector(".evidence-tags").dataset.evidence;
               const summary = card.querySelector(".biomarker-summary").textContent.trim();
               const link = card.querySelector(".biomarker-link").href.trim();
 
@@ -801,7 +810,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `${data.disease.replace(/\s+/g, "_")}_biomarkers_${date}.csv`;
+            a.download = `${data.disease.replace(/\s+/g, "_")}_associated_genes_${date}.csv`;
             a.click();
             URL.revokeObjectURL(url);
           });
@@ -864,7 +873,7 @@
               const name = card.querySelector(".biomarker-name").textContent;
               const gene = card.querySelector(".biomarker-gene").textContent || "N/A";
               const score = card.querySelector(".score-value").textContent || "N/A";
-              const type = card.querySelector(".biomarker-type").textContent || "Unclassified";
+              const type = card.querySelector(".evidence-tags").dataset.evidence || "Other evidence";
               const summary = card.querySelector(".biomarker-summary").textContent || "";
               const link = card.querySelector(".biomarker-link").href;
 
@@ -881,12 +890,12 @@
               doc.setTextColor(0, 0, 0);
               doc.text(`• Gene: ${gene}`, marginX + 4, y);
               y += lineHeight;
-              doc.text(`• Score: ${score}`, marginX + 4, y);
+              doc.text(`• Open Targets association score: ${score}`, marginX + 4, y);
               y += lineHeight;
-              doc.text(`• Type: ${type}`, marginX + 4, y);
+              doc.text(`• Evidence (Open Targets): ${type}`, marginX + 4, y);
               y += lineHeight;
 
-              const summaryLines = doc.splitTextToSize(`• Summary: ${summary}`, pageWidth - marginX * 2);
+              const summaryLines = doc.splitTextToSize(`• AI-generated summary: ${summary}`, pageWidth - marginX * 2);
               checkPageSpace(summaryLines.length * 6);
               doc.text(summaryLines, marginX + 4, y);
               y += summaryLines.length * 6;
@@ -976,38 +985,33 @@
           data: {
             id: biId,
             label: b.name,
-            type: (classifications[idx] || "unknown").toLowerCase(),
+            type: classifications[idx] || "other",
             tooltip: b.summary
           }
         });
         edges.push({ data: { source: biId, target: "disease" } });
       });
 
-      drugRows.forEach((row, i) => {
-        const drug = row.drug;
-        const target = row.target;
-        if (!drug || !target) return;
-
-        const biomIdx = data.biomarkers.findIndex(
-          b => b.openTargetsLink.includes(target.id) || b.geneName.toLowerCase() === target.approvedSymbol.toLowerCase()
-        );
-
-        const biId = `b_${biomIdx}`;
-        const drugId = `drug_${drug.id}_${i}`;
-
-        if (!nodes.some(n => n.data.id === drugId)) {
-          nodes.push({
-            data: {
-              id: drugId,
-              label: drug.name,
-              type: "drug",
-              tooltip: `Status: ${row.status}, Phase: ${row.phase}`
-            }
-          });
-        }
-
-        edges.push({ data: { source: biId, target: drugId } });
+      const drugInfo = Array.isArray(drugRows) ? { drugs: [], more: {}, error: null } : (drugRows || { drugs: [], more: {} });
+      (drugInfo.drugs || []).forEach((d) => {
+        nodes.push({
+          data: {
+            id: d.id,
+            label: d.stage === "APPROVAL" ? d.name : `${d.name}\n(${d.stageLabel.replace("Highest stage: ", "")})`,
+            type: "drug",
+            tooltip: `${d.name}: ${d.stageLabel} (Open Targets)`
+          }
+        });
+        d.genes.forEach((gi) => edges.push({ data: { source: `b_${gi}`, target: d.id } }));
       });
+      Object.entries(drugInfo.more || {}).forEach(([gi, n]) => {
+        const id = `more_${gi}`;
+        nodes.push({ data: { id, label: `+${n} more`, type: "more", tooltip: `${n} more drugs at the same stage; see Open Targets for the full list` } });
+        edges.push({ data: { source: `b_${gi}`, target: id } });
+      });
+      if (drugInfo.error) {
+        nodes.push({ data: { id: "drug_unavailable", label: "Drug data unavailable", type: "more", tooltip: "Open Targets drug data could not be loaded. Gene associations above are unaffected." } });
+      }
 
       const cy = cytoscape({
         container: cyContainer,
@@ -1036,9 +1040,10 @@
               "background-color": ele => {
                 const t = ele.data("type");
                 switch (t) {
-                  case "predictive": return "#06d6a0";
-                  case "prognostic": return "#ffd166";
-                  case "diagnostic": return "#ef476f";
+                  case "drug_response": return "#06d6a0";
+                  case "known_drug": return "#ffd166";
+                  case "somatic_mutation": return "#ef476f";
+                  case "genetic_association": return "#8ecae6";
                   case "disease": return "#4361ee";
                   case "drug": return "#ff69b4";
                   default: return "#adb5bd";
@@ -1046,11 +1051,11 @@
               },
               width: ele => {
                 const t = ele.data("type");
-                return t === "disease" ? 160 : t === "drug" ? 80 : 70;
+                return t === "disease" ? 160 : t === "drug" ? 80 : t === "more" ? 60 : 70;
               },
               height: ele => {
                 const t = ele.data("type");
-                return t === "disease" ? 160 : t === "drug" ? 80 : 70;
+                return t === "disease" ? 160 : t === "drug" ? 80 : t === "more" ? 60 : 70;
               },
               "font-size": ele => {
                 const t = ele.data("type");
